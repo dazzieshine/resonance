@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Для нормального отображения на устройствах -->
     <title>Resonance</title>
+    <script src="https://kit.fontawesome.com/af967cd298.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="style.css"> <!-- Привязываем стили -->
 </head>
 <body>
@@ -11,10 +12,9 @@
         <header class="top-bar"> 
             <!-- Название и лого-->
             <div class="logo">
-                <img src="logo.png" alt="Resonance Logo" class="logo-icon">
+                <img src="https://www.image2url.com/r2/default/images/1776683709587-e867ba10-5c50-4e75-8a88-b314b22501d8.png" alt="Resonance Logo" class="logo-icon">
                 <h1 class="name">Resonance</h1>
             </div>
-            <!-- Менюшка -->
             <nav class="nav-menu"> 
                 <a href="#">Главная</a>
                 <a href="#">Медиатека</a>
@@ -54,17 +54,19 @@
                     <div class="track-artist">Имя исполнителя</div>
                 </div>
                 <!-- Кнопка "Добавить в любимое" -->
-                <button class="like-button">♡</button>
+                <button class="like-button">
+                    <i class="fa-regular fa-heart"></i>
+                </button>
             </div>
 
             <!-- Центральная часть: элементы управления -->
             <div class="player-controls">
                 <div class="control-buttons">
-                    <button class="control-button" title="Перемешать">🔀</button>
-                    <button class="control-button" title="Предыдущий">⏮</button>
-                    <button class="control-button play-pause-button" title="Пауза">⏸</button>
-                    <button class="control-button" title="Следующий">⏭</button>
-                    <button class="control-button" title="Повтор">🔁</button>
+                    <button class="control-button" title="Перемешать"><i class="fas fa-random"></i></button>
+                    <button class="control-button" title="Предыдущий"><i class="fas fa-step-backward"></i></button>
+                    <button class="control-button play-pause-button" title="Пауза"><i class="fas fa-pause"></i></button>
+                    <button class="control-button" title="Следующий"><i class="fas fa-step-forward"></i></button>
+                    <button class="control-button" title="Повтор"><i class="fas fa-redo"></i></button>
                 </div>
                 
                 <!-- Полоса прокрутки -->
@@ -80,13 +82,14 @@
 
             <!-- Правая часть: громкость и прочее -->
             <div class="player-settings">
-                <button class="control-button" title="Очередь">📋</button>
+                <button class="control-button" title="Очередь"><i class="fas fa-list"></i></button>
                 <div class="volume-control">
-                    <button class="control-button" title="Без звука">🔊</button>
-                    <div class="volume-bar">
-                        <div class="volume-fill" style="width: 70%;"></div>
-                        <div class="volume-handle"></div>
-                    </div>
+                    <button class="volume-button" style="background: none; border: none; cursor: pointer;">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                <div class="volume-bar">
+                    <div class="volume-fill" style="width: 70%;"></div>
+                    <div class="volume-handle" style="left: 70%;"></div>
                 </div>
             </div>
         </footer>

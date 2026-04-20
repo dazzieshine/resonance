@@ -38,6 +38,7 @@ const setupSlider = (barSelector, fillSelector, handleSelector) => /* Стрел
     bar.onmousedown = (e) => 
     {
         isDragging = true;
+        bar.classList.add('active');
         currentPos = e.clientX;
         /* Запускается цикл плавной анимации */
         requestAnimationFrame(updatePosition);
@@ -50,6 +51,7 @@ const setupSlider = (barSelector, fillSelector, handleSelector) => /* Стрел
     {
         isDragging = false;
         /* Убираем слежку */
+        document.querySelectorAll('.progress-bar, .volume-bar').forEach(b => b.classList.remove('active'));
         document.removeEventListener('mousemove', onMouseMove);
     });
 };
@@ -57,3 +59,62 @@ const setupSlider = (barSelector, fillSelector, handleSelector) => /* Стрел
 /* Запускаем для обоих ползунков */
 setupSlider('.progress-bar', '.progress-fill', '.progress-handle');
 setupSlider('.volume-bar', '.volume-fill', '.volume-handle');
+
+/* Функция для кнопки "Play" */
+const playPauseBtn = document.querySelector('.play-pause-button');
+const playPauseIcon = playPauseBtn.querySelector('i');
+
+playPauseBtn.addEventListener('click', () => 
+{
+    /* Переключаем между иконками play и pause */
+    if (playPauseIcon.classList.contains('fa-pause')) {
+        playPauseIcon.classList.replace('fa-pause', 'fa-play');
+        playPauseBtn.title = "Воспроизвести";
+    } else {
+        playPauseIcon.classList.replace('fa-play', 'fa-pause');
+        playPauseBtn.title = "Пауза";
+    }
+});
+
+/* Функция для кнопки "Лайк" */
+const likeBtn = document.querySelector('.like-button');
+const likeIcon = likeBtn.querySelector('i');
+
+likeBtn.addEventListener('click', () => 
+    {
+    likeBtn.classList.toggle('liked');
+    if (likeIcon.classList.contains('fa-regular')) {
+        likeIcon.classList.replace('fa-regular', 'fa-solid');
+    } else {
+        likeIcon.classList.replace('fa-solid', 'fa-regular');
+    }
+});
+
+/* Функция для кнопки "Громкость" */
+const volumeBtn = document.querySelector('.volume-button');
+const volumeIcon = volumeBtn.querySelector('i');
+const volumeFill = document.querySelector('.volume-fill');
+const volumeHandle = document.querySelector('.volume-handle');
+
+let lastVolume = 70; /* Запоминаем громкость в процентах */
+let isMuted = false;
+
+volumeBtn.addEventListener('click', () => {
+    if (!isMuted) {
+        // Включаем беззвучный режим
+        lastVolume = parseInt(volumeFill.style.width) || 70; /* Сохраняем текущую громкость */
+        
+        volumeFill.style.width = '0%';
+        volumeHandle.style.left = '0%';
+        
+        volumeIcon.classList.replace('fa-volume-up', 'fa-volume-mute');
+        isMuted = true;
+    } else {
+        // Возвращаем звук
+        volumeFill.style.width = lastVolume + '%';
+        volumeHandle.style.left = lastVolume + '%';
+        
+        volumeIcon.classList.replace('fa-volume-mute', 'fa-volume-up');
+        isMuted = false;
+    }
+});
