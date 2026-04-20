@@ -5,19 +5,309 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #0a0a0a;
-    color: #e0e0e0;
-    line-height: 1.6;
+    font-family: Arial, sans-serif;
+    background-color: #000000;
+    color: #ffffff;
+    height: 100vh;
+    overflow: hidden; /* Отключение общей прокрутки, она будет в main-content позже */
 }
 
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 70px 1fr 90px;
+    grid-template-areas:
+        "header"
+        "main"
+        "player";
+    height: 100vh;
 }
 
-.header {
-    padding: 20px 0;
-    border-bottom: 1px solid #7b2cbf;
+.top-bar {
+    grid-area: header;
+    background-color: #121212;
+    padding: 0 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #282828;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
+    background-color: #7b2cbf;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.name {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.nav-menu {
+    display: flex;
+    gap: 28px;
+}
+
+.nav-menu a {
+    color: #b3b3b3;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.nav-menu a:hover {
+    color: #ffffff;
+}
+
+.main-content {
+    grid-area: main;
+    background-color: #1a1a1a;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+.project-info {
+    display: flex;
+    justify-content: center;
+}
+
+.info-card {
+    background: linear-gradient(135deg, #282828 0%, #1a1a1a 100%);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    max-width: 900px;
+    width: 100%;
+}
+
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.info-header h2 {
+    font-size: 28px;
+    color: #ffffff;
+}
+
+.badge {
+    background-color: #7b2cbf;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #cccccc;
+}
+
+.player {
+    grid-area: player;
+    background-color: #181818;
+    border-top: 1px solid #282828;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+}
+
+.track-info {
+    display: flex;
+    align-items: center;
+    width: 30%;
+    min-width: 180px;
+}
+
+.track-cover {
+    width: 56px;
+    height: 56px;
+    background-color: #333;
+    border-radius: 4px;
+    margin-right: 14px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.track-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-right: 14px;
+}
+
+.track-name {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
+
+.track-name:hover {
+    text-decoration: underline;
+}
+
+.track-artist {
+    color: #b3b3b3;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.track-artist:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.like-button {
+    background: none;
+    border: none;
+    color: #b3b3b3;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.like-button:hover {
+    color: #fff;
+}
+
+.player-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40%;
+    max-width: 722px;
+}
+
+.control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 8px;
+}
+
+.control-button, {
+    background: none;
+    border: none;
+    color: #b3b3b3;
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.control-button:hover, {
+    color: #fff;
+}
+
+.play-pause-button {
+    background-color: #fff;
+    color: #000;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: transform 0.1s;
+}
+
+.play-pause-button:hover {
+    transform: scale(1.05);
+    color: #000;
+}
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+}
+
+.time {
+    color: #a7a7a7;
+    font-size: 11px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.progress-bar, .volume-bar {
+    height: 4px;
+    background-color: #535353;
+    border-radius: 2px;
+    width: 100%;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.progress-fill, .volume-fill {
+    height: 100%;
+    background-color: #b3b3b3;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.progress-handle, .volume-handle {
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    transform: translateX(-50%);
+    opacity: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    transition: opacity 0.2s;
+}
+
+.progress-handle { left: 35%; }
+.volume-handle { left: 70%; }
+
+.progress-bar:hover .progress-fill, 
+.volume-bar:hover .volume-fill {
+    background-color: #7b2cbf;
+}
+
+.progress-bar:hover .progress-handle,
+.volume-bar:hover .volume-handle {
+    opacity: 1;
+}
+
+.player-settings {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 30%;
+    min-width: 180px;
+    gap: 16px;
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    width: 100px;
+    gap: 8px;
 }

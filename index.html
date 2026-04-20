@@ -2,40 +2,96 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resonance — Цифровое убежище</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Для нормального отображения на устройствах -->
+    <title>Resonance</title>
+    <link rel="stylesheet" href="style.css"> <!-- Привязываем стили -->
 </head>
 <body>
-    <header class="header">
-        <div class="container">
+    <div class="container">
+        <header class="top-bar"> 
+            <!-- Название и лого-->
             <div class="logo">
-                <span class="logo__name">Resonance</span>
-                <span class="logo__tagline">void inside</span>
+                <img src="logo.png" alt="Resonance Logo" class="logo-icon">
+                <h1 class="name">Resonance</h1>
             </div>
-            <nav class="nav">
-                <a href="#" class="nav__link">Главная</a>
-                <a href="#" class="nav__link">Хранилище</a>
-                <a href="#" class="nav__link">Профиль</a>
+            <!-- Менюшка -->
+            <nav class="nav-menu"> 
+                <a href="#">Главная</a>
+                <a href="#">Медиатека</a>
+                <a href="#">Плейлисты</a>
+                <a href="#">Поиск</a>
+                <a href="#">Профиль</a>
             </nav>
-        </div>
-    </header>
+        </header>
 
-    <main class="main-content">
-        <section class="hero">
-            <h1 class="hero__title">Сигнал сквозь пустоту</h1>
-            <p class="hero__descr">Твое независимое пространство для хранения аудио-архивов.</p>
-        </section>
-        
-        <section class="player">
-            <audio class="player__element" controls>
-                <source src="" type="audio/mpeg">
-            </audio>
-        </section>
-    </main>
+        <!-- Главная страница -->
+        <main class="main-content">
+            <section class="project-info">
+                <div class="info-card">
+                    <div class="info-header">
+                        <h2>О проекте Resonance</h2>
+                        <span class="badge">Курсовая работа</span>
+                    </div>
+                    <p class="info-text">
+                        Добро пожаловать в прототип адаптивного веб-сайта музыкального сервиса. 
+                        Проект разрабатывается в рамках курсовой работы и демонстрирует возможности 
+                        современных веб-технологий (HTML5, CSS3, JavaScript) для создания 
+                        интерактивных пользовательских интерфейсов. 
+                    </p>
+                </div>
+            </section>
+        </main>
 
-    <footer class="footer">
-        <p class="footer__copy">© 2026 Resonance Project. Создано dazziessshine.</p>
-    </footer>
+        <!-- Плеер -->
+        <footer class="player">
+            
+            <!-- Левая часть: текущий трек -->
+            <div class="track-info">
+                <!-- Заглушка для обложки -->
+                <div class="track-cover"></div>
+                <div class="track-details">
+                    <div class="track-name">Название трека</div>
+                    <div class="track-artist">Имя исполнителя</div>
+                </div>
+                <!-- Кнопка "Добавить в любимое" -->
+                <button class="like-button">♡</button>
+            </div>
+
+            <!-- Центральная часть: элементы управления -->
+            <div class="player-controls">
+                <div class="control-buttons">
+                    <button class="control-button" title="Перемешать">🔀</button>
+                    <button class="control-button" title="Предыдущий">⏮</button>
+                    <button class="control-button play-pause-button" title="Пауза">⏸</button>
+                    <button class="control-button" title="Следующий">⏭</button>
+                    <button class="control-button" title="Повтор">🔁</button>
+                </div>
+                
+                <!-- Полоса прокрутки -->
+                <div class="progress-container">
+                    <span class="time current-time">1:24</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 35%;"></div>
+                        <div class="progress-handle"></div>
+                    </div>
+                    <span class="time total-time">3:45</span>
+                </div>
+            </div>
+
+            <!-- Правая часть: громкость и прочее -->
+            <div class="player-settings">
+                <button class="control-button" title="Очередь">📋</button>
+                <div class="volume-control">
+                    <button class="control-button" title="Без звука">🔊</button>
+                    <div class="volume-bar">
+                        <div class="volume-fill" style="width: 70%;"></div>
+                        <div class="volume-handle"></div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+<script src="script.js"></script>
 </body>
 </html>
