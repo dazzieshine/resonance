@@ -118,3 +118,61 @@ volumeBtn.addEventListener('click', () => {
         isMuted = false;
     }
 });
+
+/* Функция управления состоянием авторизации */
+let isRegistered = false; 
+let userData = { username: "" };
+
+const profileNavLink = document.querySelector('.nav-menu a:last-child');
+const homeNavLink = document.querySelector('.nav-menu a:first-child');
+const regView = document.getElementById('registration-view');
+const profileView = document.getElementById('profile-view');
+const homeView = document.getElementById('home-view');
+const allSections = document.querySelectorAll('.content-section');
+
+/* Функция для скрытия всего контента */
+function hideAll() {
+    allSections.forEach(section => section.style.display = 'none');
+}
+
+/* Клик по "Главная" */
+homeNavLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    hideAll();
+    homeView.style.display = 'block'; // Возвращаем инфу о проекте
+});
+
+/* Клик по "Профиль" */
+profileNavLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    hideAll();
+
+    if (!isRegistered) {
+        /* Если не зарегистрирован - показываем страницу регистрации */
+        regView.style.display = 'block';
+    } else {
+        /* Если уже в системе - показываем профиль */
+        document.getElementById('user-name-display').textContent = userData.username;
+        profileView.style.display = 'block';
+    }
+});
+
+/* Обработка формы регистрации */
+document.getElementById('reg-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    /* Сохраняем имя и меняем статус */
+    userData.username = document.getElementById('username-input').value;
+    isRegistered = true;
+    /* Переключаем вид на профиль */
+    hideAll();
+    document.getElementById('user-name-display').textContent = userData.username;
+    profileView.style.display = 'block';
+});
+
+/* Выход из профиля*/
+document.getElementById('logout-button').addEventListener('click', () => {
+    isRegistered = false;
+    hideAll();
+    alert("Вы вышли из профиля");
+});

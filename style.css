@@ -374,3 +374,119 @@ color: #a7a7a7;
 .volume-button:active {
     transform: scale(0.9);
 }
+
+.auth-box, .profile-card {
+    background: #181818;
+    padding: 40px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    margin: 100px auto;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.auth-box h2, .profile-card h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.auth-box p {
+    margin-bottom: 20px;
+    color: #b3b3b3;
+    font-size: 14px;
+}
+
+.auth-button {
+    background: #7b2cbf;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+.auth-button:hover { 
+    background: #9d4edd; 
+}
+
+.auth-box input {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #282828;
+    border: 1px solid transparent;
+    color: white;
+    border-radius: 4px;
+}
+
+.profile-card {
+    background: #181818;
+    padding: 60px 40px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    margin: 100px auto;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+
+.avatar-big {
+    font-size: 80px;
+    color: #7b2cbf;
+    margin-bottom: 10px;
+}
+
+.profile-card h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.secondary-button {
+    background-color: transparent;
+    color: #b3b3b3;
+    border: 1px solid #b3b3b3;
+    padding: 10px 30px;
+    border-radius: 500px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.secondary-button:hover {
+    color: #fff;
+    border-color: #fff;
+    transform: scale(1.05);
+}
+
+/* Полоса прокрутки */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+/* Фон дорожки */
+::-webkit-scrollbar-track {
+    background: #121212;
+}
+
+/* Полоса прокрутки */
+::-webkit-scrollbar-thumb {
+    background: #4f4f4f;
+    border-radius: 6px;
+    border: 3px solid #121212;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #7b2cbf;
+}

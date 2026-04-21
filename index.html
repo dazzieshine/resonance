@@ -26,20 +26,43 @@
 
         <!-- Главная страница -->
         <main class="main-content">
-            <section class="project-info">
-                <div class="info-card">
-                    <div class="info-header">
-                        <h2>О проекте Resonance</h2>
-                        <span class="badge">Курсовая работа</span>
+            <section id="home-view" class="content-section">
+                <section class="project-info">
+                    <div class="info-card">
+                        <div class="info-header">
+                            <h2>О проекте Resonance</h2>
+                            <span class="badge">Курсовая работа</span>
+                        </div>
+                        <p class="info-text">
+                            Добро пожаловать в прототип адаптивного веб-сайта музыкального сервиса. 
+                            Проект разрабатывается в рамках курсовой работы и демонстрирует возможности 
+                            современных веб-технологий (HTML5, CSS3, JavaScript) для создания 
+                            интерактивных пользовательских интерфейсов. 
+                        </p>
                     </div>
-                    <p class="info-text">
-                        Добро пожаловать в прототип адаптивного веб-сайта музыкального сервиса. 
-                        Проект разрабатывается в рамках курсовой работы и демонстрирует возможности 
-                        современных веб-технологий (HTML5, CSS3, JavaScript) для создания 
-                        интерактивных пользовательских интерфейсов. 
-                    </p>
+                </section>
+            </section>
+            
+            <!-- Секция регистрации -->
+            <section id="registration-view" class="content-section" style="display: none;">
+                <div class="auth-box">
+                    <h2>Регистрация в Resonance</h2>
+                    <form id="reg-form">
+                        <input type="text" id="username-input" placeholder="Логин" required>
+                        <input type="password" id="password-input" placeholder="Пароль" required>
+                        <button type="submit" class="auth-button">Создать аккаунт</button>
+                    </form>
                 </div>
             </section>
+
+            <section id="profile-view" class="content-section" style="display: none;">
+                <div class="profile-card">
+                    <div class="avatar-big"><i class="fas fa-user-circle"></i></div>
+                    <h2 id="user-name-display">Имя пользователя</h2>
+                    <p>Добро пожаловать в Resonance!</p>
+                    <button id="logout-button" class="secondary-button">Выйти</button>
+                </div>
+            </section>      
         </main>
 
         <!-- Плеер -->
