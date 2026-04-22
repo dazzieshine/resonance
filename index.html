@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Для нормального отображения на устройствах -->
-    <title>Resonance</title>
+    <title>Resonance - Music Archieve</title>
     <script src="https://kit.fontawesome.com/af967cd298.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="style.css"> <!-- Привязываем стили -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -18,8 +18,6 @@
             <nav class="nav-menu"> 
                 <a href="#">Главная</a>
                 <a href="#">Медиатека</a>
-                <a href="#">Плейлисты</a>
-                <a href="#">Поиск</a>
                 <a href="#">Профиль</a>
             </nav>
         </header>
@@ -42,7 +40,79 @@
                     </div>
                 </section>
             </section>
+
+            <section id="library-view" class="content-section" style="display: none;">
+                <div class="library-header">
+                    <div class="header-info">
+                        <h2>Ваша медиатека</h2>
+                        <p class="subtitle">Персональное цифровое хранилище</p>
+                    </div>
+                    <button class="add-track-button" id="open-upload-modal">
+                        <i class="fas fa-plus"></i>
+                        <span>Добавить трек</span>
+                    </button>
+                </div>
+
+                <div class="library-filters">
+                    <span class="filter-tag active">Треки</span>
+                    <span class="filter-tag">Альбомы</span>
+                    <span class="filter-tag">Плейлисты</span>
+                </div>
+
+                <div id="tracks-list" class="tracks-grid">
+                    <div id="empty-library" class="empty-state">
+                        <i class="fas fa-compact-disc"></i>
+                        <h3>Здесь пока ничего нет</h3>
+                        <p>Загрузите свой первый трек, чтобы начать создание коллекции</p>
+                    </div>
+                </div>
+
+                <div id="upload-form-container" class="upload-overlay" style="display: none;">
+                    <div class="auth-box upload-box"> 
+                        <h3>Загрузка трека</h3>
+
+                        <div class="upload-form-content">
+                            <div class="input-group">
+                                <input type="text" id="track-title" placeholder="Название песни">
+                            </div>
+                                    
+                            <div class="input-group">
+                                <input type="text" id="track-artist" placeholder="Исполнитель">
+                            </div>
+
+                            <div class="file-upload-container">
+                                <label for="track-file" class="custom-file-upload">
+                                    <i class="fas fa-plus"></i>
+                                </label>
+                                <span id="file-name-display">Выберите аудиофайл (MP3, WAV)</span>
+                                <input type="file" id="track-file" accept="audio/mp3, audio/wav" style="display: none;">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="auth-button" id="start-upload-button">Добавить</button>
+                            <button class="secondary-button" id="cancel-upload-button">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
             
+            <!-- Секция входа-->
+            <section id="login-view" class="content-section" style="display: none;">
+                <div class="auth-box">
+                    <h2>Войти в Resonance</h2>
+                    <form id="login-form">
+                        <input type="text" id="login-username" placeholder="Логин" required>
+                        <input type="password" id="login-password" placeholder="Пароль" required>
+                        <button type="submit" class="auth-button">Войти</button>
+                    </form>
+                    <div style="margin-top: 20px; font-size: 14px;">
+                        <span style="color: #888;">Нет аккаунта?</span>
+                        <a href="#" id="to-reg-link" style="color: #9d4edd; text-decoration: none; font-weight: bold; margin-left: 5px;">Создать аккаунт</a>
+                    </div>
+                </div>
+            </section>
+
             <!-- Секция регистрации -->
             <section id="registration-view" class="content-section" style="display: none;">
                 <div class="auth-box">
@@ -50,19 +120,34 @@
                     <form id="reg-form">
                         <input type="text" id="username-input" placeholder="Логин" required>
                         <input type="password" id="password-input" placeholder="Пароль" required>
-                        <button type="submit" class="auth-button">Создать аккаунт</button>
+                        <button type="submit" id="reg-button" class="auth-button">Создать аккаунт</button>
                     </form>
                 </div>
             </section>
 
+            <!-- Секция профиля -->
             <section id="profile-view" class="content-section" style="display: none;">
                 <div class="profile-card">
-                    <div class="avatar-big"><i class="fas fa-user-circle"></i></div>
-                    <h2 id="user-name-display">Имя пользователя</h2>
-                    <p>Добро пожаловать в Resonance!</p>
-                    <button id="logout-button" class="secondary-button">Выйти</button>
+                    <div class="profile-header">
+                        <div class="avatar-container">
+                            <i class="fas fa-user-circle avatar-big"></i>
+                            <div class="edit-badge"><i class="fas fa-pen"></i></div>
+                        </div>
+                        <h2 id="user-name-display">Пользователь</h2>
+                    </div>
+
+                    <div class="stats-container">
+                        <div class="stat-item">
+                            <span class="stat-value">0</span>
+                            <span class="stat-label">Треков</span>
+                        </div>
+                    </div>
+
+                    <div class="profile-actions">
+                        <button id="logout-button" class="logout-button">Выйти</button>
+                    </div>
                 </div>
-            </section>      
+            </section>  
         </main>
 
         <!-- Плеер -->
@@ -86,9 +171,9 @@
             <div class="player-controls">
                 <div class="control-buttons">
                     <button class="control-button" title="Перемешать"><i class="fas fa-random"></i></button>
-                    <button class="control-button" title="Предыдущий"><i class="fas fa-step-backward"></i></button>
+                    <button class="control-button prev-button" title="Предыдущий"><i class="fas fa-step-backward"></i></button>
                     <button class="control-button play-pause-button" title="Пауза"><i class="fas fa-pause"></i></button>
-                    <button class="control-button" title="Следующий"><i class="fas fa-step-forward"></i></button>
+                    <button class="control-button next-button" title="Следующий"><i class="fas fa-step-forward"></i></button>
                     <button class="control-button" title="Повтор"><i class="fas fa-redo"></i></button>
                 </div>
                 
@@ -118,6 +203,11 @@
         </footer>
 
     </div>
+
+<audio id="main-audio" style="display:none;"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.104.0/dist/umd/supabase.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
