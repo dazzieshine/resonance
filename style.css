@@ -87,7 +87,7 @@ body {
     border: 1px solid #333;
     border-radius: 12px;
     padding: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px #000000;
     max-width: 900px;
     width: 100%;
 }
@@ -145,7 +145,7 @@ body {
     background-color: #333;
     border-radius: 4px;
     margin-right: 14px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 8px #000000;
 }
 
 .track-details {
@@ -314,7 +314,7 @@ color: #a7a7a7;
     position: absolute;
     transform: translateX(-50%);
     opacity: 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 4px #000000;
     transition: opacity 0.2s;
 }
 
@@ -381,7 +381,7 @@ color: #a7a7a7;
     max-width: 400px;
     margin: 100px auto;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px #000000;
 }
 
 .auth-box h2, .profile-card h2 {
@@ -577,7 +577,7 @@ color: #a7a7a7;
     width: 100%;
     aspect-ratio: 1/1;
     margin-bottom: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 24px #000000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -677,7 +677,7 @@ color: #a7a7a7;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85); 
+    background: #000000; 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -728,7 +728,7 @@ color: #a7a7a7;
     justify-content: center;
     cursor: pointer;
     transition: transform 0.2s, background-color 0.2s;
-    box-shadow: 0 4px 15px rgba(123, 44, 191, 0.3);
+    box-shadow: 0 4px 15px #250d3a;
 }
 
 .custom-file-upload i {
@@ -763,6 +763,87 @@ color: #a7a7a7;
     color: #7b2cbf;
     font-size: 60px;
 
+}
+
+.repeat-button, .shuffle-button {
+    transition: color 0.3s ease;
+    cursor: pointer;
+}
+
+.queue-overlay {
+    position: fixed;
+    bottom: 110px; 
+    right: -420px;
+    width: 340px;
+    /* Ограничиваем высоту, чтобы она не перекрывала весь экран при масштабе */
+    height: auto;
+    max-height: 50vh; 
+    background: #121212;
+    backdrop-filter: blur(15px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    border: 1px solid #32194a; 
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px #000000;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.queue-overlay.active {
+    right: 20px;
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(0);
+}
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #1a1a1a; 
+    flex-shrink: 0;
+}
+
+.queue-list {
+    margin-top: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.queue-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.queue-list::-webkit-scrollbar-thumb {
+    background: #32194a;
+    border-radius: 10px;
+}
+
+.queue-item:last-child {
+    margin-bottom: 10px;
+}
+
+.queue-item {
+    cursor: pointer;
+    display: flex;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: background 0.2s;
+}
+
+.queue-item:hover {
+    background: #32194a;
+}
+
+.queue-item.current {
+    color: #a855f7;
+    background: #32194a;
+    font-weight: bold;
 }
 
 /* Полоса прокрутки */

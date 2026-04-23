@@ -45,6 +45,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const volumeIcon = document.querySelector('.volume-button i');
     const volumeBtn = document.querySelector('.volume-button');
     const volumeHandle = document.querySelector('.volume-handle');
+    const repeatBtn = document.querySelector('.repeat-button');
+    const shuffleBtn = document.querySelector('.shuffle-button');
+
+    /*Элементы для очереди треков */
+    const queueOverlay = document.getElementById('queue-overlay');
+    const queueList = document.getElementById('queue-list');
+    const queueBtn = document.querySelector('.queue-button');
+    const closeQueue = document.getElementById('close-queue');
 
     let isRegistered = false;
     let currentUser = localStorage.getItem('my_user_uuid') || null;
@@ -52,6 +60,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let currentPlaylist = []; /* Массив для хранения треков */
     let currentTrackIndex = -1; /* Индекс текущего трека */
+
+    let isRepeat = false;
+    let isShuffle = false;
+    let shuffledPlaylist = [];
 
     /* Синхронизация иконки Play/Pause с состоянием плеера */
     audioPlayer.addEventListener('play', () => {
@@ -365,7 +377,7 @@ window.addEventListener('DOMContentLoaded', () => {
         activeFill.style.width = p + '%';
         if (activeHandle) activeHandle.style.left = p + '%';
         
-        // Дополнительная логика для прогресса/громкости
+        /* Логика для изменения текущего времени трека или громкости в зависимости от того, какой слайдер активен */
         if (activeBar.classList.contains('progress-bar') && audioPlayer.duration) {
             audioPlayer.currentTime = (p / 100) * audioPlayer.duration;
         }
@@ -384,7 +396,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('mouseup', onMouseUp);
     };
 
-    // Инициализация одного слайдера
+    /* Инициализация слайдера для прогресса трека и громкости. Логика общая */
     const initSlider = (barSelector, fillSelector, handleSelector) => {
         const bar = document.querySelector(barSelector);
         const fill = document.querySelector(fillSelector);
@@ -397,7 +409,7 @@ window.addEventListener('DOMContentLoaded', () => {
             activeHandle = handle;
             bar.classList.add('active');
             
-            // Сразу обновляем позицию при клике
+            /* Обновление позиции слайдера при клике на него */
             const rect = bar.getBoundingClientRect();
             let p = ((e.clientX - rect.left) / rect.width) * 100;
             p = Math.max(0, Math.min(100, p));
@@ -416,7 +428,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Запускаем
     initSlider('.progress-bar', '.progress-fill', '.progress-handle');
     initSlider('.volume-bar', '.volume-fill', '.volume-handle');
 
@@ -471,7 +482,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     /* Функция для кнопки "Громкость" */
-    let lastVolume = 70; /* Запоминаем громкость в процентах */
+    let lastVolume = 70;
     let isMuted = false;
 
     volumeBtn.addEventListener('click', () => {
@@ -553,30 +564,107 @@ window.addEventListener('DOMContentLoaded', () => {
 
         /* Обновление визуального состояния кнопки "Лайк" в зависимости от статуса текущего трека */
         updateLikeVisuals(track.is_liked);
+
+        if (queueOverlay.classList.contains('active')) {
+            renderQueue();
+        }
     }
 
     /* Автоматическое переключение на следующий трек после окончания текущего */
     audioPlayer.addEventListener('ended', () => {
-        if (currentTrackIndex + 1 < currentPlaylist.length) {
-            currentTrackIndex++;
+        if (isRepeat) {
+            PlayTrack(currentTrackIndex);
+        }
+        else if (isShuffle) {
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * currentPlaylist.length);
+            } while (randomIndex === currentTrackIndex);
+            currentTrackIndex = randomIndex;
+
+            currentTrackIndex = randomIndex;
             playTrack(currentTrackIndex);
+        }
+        else {
+            currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+            playTrack(currentTrackIndex);
+        }
+    });
+
+    /* Функция для выбора следующего индекса трека в зависимости от режима воспроизведения (обычный или перемешивание) */
+    function getNextIndex() {
+        if (isShuffle && shuffledPlaylist.length > 1) {
+                /* Находим текущий трек в перемешанном плейлисте и выбираем следующий по циклу, чтобы избежать повторов до тех пор, пока не пройдут все треки */
+                const currentInShuffled = shuffledPlaylist.findIndex(t => t.id === currentPlaylist[currentTrackIndex].id);
+                const nextInShuffled = (currentInShuffled + 1) % shuffledPlaylist.length;
+                return currentPlaylist.findIndex(t => t.id === shuffledPlaylist[nextInShuffled].id);
+            }
+            return (currentTrackIndex + 1) % currentPlaylist.length;
+        }
+
+    /* Функция для выбора предыдущего индекса трека в зависимости от режима воспроизведения (обычный или перемешивание) */
+    function getPrevIndex() {
+        if (isShuffle && currentPlaylist.length > 1) {
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * currentPlaylist.length);
+            } while (randomIndex === currentTrackIndex);
+            
+            return randomIndex;
         } else {
+            return (currentTrackIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
         }
-    });
+    }
 
-    document.querySelector('.next-button')?.addEventListener('click', () => {
-        if (currentTrackIndex + 1 < currentPlaylist.length) {
-            currentTrackIndex++;
+    /* Кнопка "Вперед" */
+    document.querySelector('.next-button').onclick = () => {
+        currentTrackIndex = getNextIndex();
+        playTrack(currentTrackIndex);
+    };
+
+    /* Кнопка "Назад" */
+    document.querySelector('.prev-button').onclick = () => {
+        currentTrackIndex = getPrevIndex();
+        playTrack(currentTrackIndex);
+    };
+
+    /* Когда трек заканчивается, проверяем, включен ли режим повторения
+    Если да - просто воспроизводим тот же трек
+    Если нет - выбираем следующий трек в зависимости от того, включен ли режим перемешивания, и воспроизводим его */
+    audioPlayer.onended = () => {
+        if (isRepeat) {
+            playTrack(currentTrackIndex); /* Приоритет повторения */
+        } else {
+            currentTrackIndex = getNextIndex();
             playTrack(currentTrackIndex);
         }
+    };
+
+    /* Кнопка повторения трека */
+    repeatBtn.addEventListener('click', () => {
+        isRepeat = !isRepeat;
+        if (isRepeat) isShuffle = false;
+        updateControlStyles();
+        if (queueOverlay.classList.contains('active')) renderQueue();
     });
 
-    document.querySelector('.prev-button')?.addEventListener('click', () => {
-        if (currentTrackIndex - 1 >= 0) {
-            currentTrackIndex--;
-            playTrack(currentTrackIndex);
+    /* Кнопка перемешивания */
+    shuffleBtn.addEventListener('click', () => {
+        isShuffle = !isShuffle;
+        if (isShuffle) {
+            isRepeat = false;
+            /* Генерация новой перемешанной версии плейлиста для отображения в очереди */
+            shuffledPlaylist = [...currentPlaylist].sort(() => Math.random() - 0.5);
         }
+        updateControlStyles();
+        if (queueOverlay.classList.contains('active')) renderQueue();
     });
+
+    /* Функция для обновления стилей кнопок "Повтор" и "Перемешивание" */
+    function updateControlStyles() {
+        shuffleBtn.style.color = isShuffle ? '#a855f7' : '#fff';
+        repeatBtn.style.color = isRepeat ? '#a855f7' : '#fff';
+    }
 
     /* Логика для форматирования времени в плеере (минуты:секунды) */
     const formatTime = (sec) => {
@@ -599,4 +687,74 @@ window.addEventListener('DOMContentLoaded', () => {
     audioPlayer.addEventListener('loadedmetadata', () => {
         totalTimeEl.textContent = formatTime(audioPlayer.duration);
     });
+
+    /* Открыть очередь треков */
+    queueBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isActive = queueOverlay.classList.contains('active');
+        
+        if (isActive) {
+            queueOverlay.classList.remove('active');
+        } else {
+            renderQueue();
+            queueOverlay.classList.add('active');
+        }
+    };
+
+    /* Закрыть очередь треков */
+    closeQueue.onclick = () => {
+        queueOverlay.classList.remove('active');
+    };
+
+    /* Функция для рендера очереди треков в зависимости от текущих режимов воспроизведения */
+    function renderQueue() {
+        const queueList = document.getElementById('queue-list');
+        queueList.innerHTML = ''; 
+
+        let displayTracks = [];
+
+        if (isRepeat) {
+            /* Только текущий трек, при повторе остальные не важны */
+            displayTracks = [currentPlaylist[currentTrackIndex]];
+        } else if (isShuffle) {
+           /*  Используем перемешанный плейлист для отображения в очереди */
+            displayTracks = shuffledPlaylist;
+        } else {
+            /* Обычный режим - отображаем треки в порядке основного плейлиста */
+            displayTracks = currentPlaylist;
+        }
+
+        displayTracks.forEach((track, index) => {
+            const item = document.createElement('div');
+            /* Трек считается текущим, если его ID совпадает с ID трека на текущем индексе основного плейлиста
+            Это гарантирует правильное выделение даже в режиме перемешивания, где порядок отображения отличается от порядка основного плейлиста */
+            const isCurrent = (track.id === currentPlaylist[currentTrackIndex]?.id);
+            
+            item.className = `queue-item ${isCurrent ? 'current' : ''}`;
+            
+            item.innerHTML = `
+                <div style="display:flex; align-items:center; gap:12px; width:100%;">
+                    <span style="opacity:0.5; width:20px; font-size: 12px;">${index + 1}</span>
+                    <div style="flex-grow:1; overflow: hidden;">
+                        <div style="font-weight:500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${track.title || 'Без названия'}
+                        </div>
+                        <div style="font-size:11px; opacity:0.6;">
+                            ${track.artist || 'Неизвестен'}
+                        </div>
+                    </div>
+                    ${isCurrent ? `<i class="fas ${isRepeat ? 'fa-redo-alt' : 'fa-volume-up'}" style="color:#a855f7"></i>` : ''}
+                </div>
+            `;
+
+            item.onclick = () => {
+                /* Находим индекс трека в основном плейлисте по его ID, чтобы корректно обновить currentTrackIndex и воспроизвести выбранный трек*/
+                const mainIndex = currentPlaylist.findIndex(t => t.id === track.id);
+                currentTrackIndex = mainIndex;
+                playTrack(currentTrackIndex);
+            };
+
+            queueList.appendChild(item);
+        });
+    }
 });

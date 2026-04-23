@@ -170,11 +170,11 @@
             <!-- Центральная часть: элементы управления -->
             <div class="player-controls">
                 <div class="control-buttons">
-                    <button class="control-button" title="Перемешать"><i class="fas fa-random"></i></button>
+                    <button class="control-button shuffle-button" title="Перемешать"><i class="fas fa-random"></i></button>
                     <button class="control-button prev-button" title="Предыдущий"><i class="fas fa-step-backward"></i></button>
                     <button class="control-button play-pause-button" title="Пауза"><i class="fas fa-pause"></i></button>
                     <button class="control-button next-button" title="Следующий"><i class="fas fa-step-forward"></i></button>
-                    <button class="control-button" title="Повтор"><i class="fas fa-redo"></i></button>
+                    <button class="control-button repeat-button" title="Повтор"><i class="fas fa-redo"></i></button>
                 </div>
                 
                 <!-- Полоса прокрутки -->
@@ -190,7 +190,7 @@
 
             <!-- Правая часть: громкость и прочее -->
             <div class="player-settings">
-                <button class="control-button" title="Очередь"><i class="fas fa-list"></i></button>
+                <button class="control-button queue-button" title="Очередь"><i class="fas fa-list"></i></button>
                 <div class="volume-control">
                     <button class="volume-button" style="background: none; border: none; cursor: pointer;">
                         <i class="fas fa-volume-up"></i>
@@ -201,7 +201,15 @@
                 </div>
             </div>
         </footer>
+    </div>
 
+    <div id="queue-overlay" class="queue-overlay">
+        <div class="queue-header">
+            <h3 style="margin: 0; color: #fff;">Очередь</h3>
+            <button id="close-queue" class="control-button"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="queue-list" class="queue-list">
+            </div>
     </div>
 
 <audio id="main-audio" style="display:none;"></audio>
