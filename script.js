@@ -54,16 +54,36 @@ window.addEventListener('DOMContentLoaded', () => {
     const queueBtn = document.querySelector('.queue-button');
     const closeQueue = document.getElementById('close-queue');
 
+    /* Элементы для фильтрации треков в медиатеке */
+    const filterAll = document.getElementById('filter-all');
+    const filterLiked = document.getElementById('filter-liked');
+
     let isRegistered = false;
     let currentUser = localStorage.getItem('my_user_uuid') || null;
     if (currentUser) isRegistered = true; /* Если есть сохраненный UUID, считаем юзера авторизованным */
 
+    let allUserTracks = []; /* Все треки текущего пользователя */
     let currentPlaylist = []; /* Массив для хранения треков */
     let currentTrackIndex = -1; /* Индекс текущего трека */
 
     let isRepeat = false;
     let isShuffle = false;
     let shuffledPlaylist = [];
+    let originalPlaylist = [];
+
+    filterAll?.addEventListener('click', () => {
+        filterAll.classList.add('active');
+        filterLiked.classList.remove('active');
+        currentPlaylist = [...allUserTracks];
+        renderTracks(currentPlaylist);
+        });
+    
+    filterLiked?.addEventListener('click', () => {
+        filterLiked.classList.add('active');
+        filterAll.classList.remove('active');
+        currentPlaylist = allUserTracks.filter(track => track.is_liked);
+        renderTracks(currentPlaylist);
+    });
 
     /* Синхронизация иконки Play/Pause с состоянием плеера */
     audioPlayer.addEventListener('play', () => {
@@ -465,19 +485,28 @@ window.addEventListener('DOMContentLoaded', () => {
             updateLikeVisuals(!newStatus);
             toast("Не удалось сохранить лайк", "error");
         }
+
+        /* Для отображения в медиатеке "Любимого" */
+        if (filterLiked.classList.contains('active')) {
+            const likedTracks = currentPlaylist.filter(t => t.is_liked);
+            renderTracks(likedTracks);
+        }
     });
 
     /* Визуальное обновление кнопки "Лайк" в зависимости от статуса */
     function updateLikeVisuals(isLiked) {
-        const likeBtn = document.querySelector('.like-button');
-        const likeIcon = likeBtn.querySelector('i');
+        const btn = document.querySelector('.like-button');
+        if (!btn) return;
         
+        const icon = btn.querySelector('i');
+        if (!icon) return;
+
         if (isLiked) {
-            likeBtn.classList.add('liked');
-            likeIcon.classList.replace('fa-regular', 'fa-solid');
+            btn.classList.add('liked');
+            icon.classList.replace('fa-regular', 'fa-solid');
         } else {
-            likeBtn.classList.remove('liked');
-            likeIcon.classList.replace('fa-solid', 'fa-regular');
+            btn.classList.remove('liked');
+            icon.classList.replace('fa-solid', 'fa-regular');
         }
     }
 
@@ -512,11 +541,15 @@ window.addEventListener('DOMContentLoaded', () => {
             .select('*')
             .eq('user_id', currentUser);
 
-        if (!tracks || tracks.length === 0) {
-            emptyState.style.display = 'flex';
+        if (error) return;
+
+        allUserTracks = tracks || [];
+        currentPlaylist = [...allUserTracks];
+        
+        if (filterLiked?.classList.contains('active')) {
+            renderTracks(allUserTracks.filter(t => t.is_liked));
         } else {
-            emptyState.style.display = 'none';
-            renderTracks(tracks);
+            renderTracks(allUserTracks);
         }
     }
 
@@ -556,8 +589,17 @@ window.addEventListener('DOMContentLoaded', () => {
         if (index < 0 || index >= currentPlaylist.length) return;
         
         const track = currentPlaylist[index];
+
+        audioPlayer.pause();
         audioPlayer.src = track.file_url;
-        audioPlayer.play().catch(err => console.error("Ошибка воспроизведения:", err));
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(err => {
+                if (err.name !== 'AbortError') {
+                    console.error("Ошибка воспроизведения:", err);
+                }
+            });
+        }
 
         document.querySelector('.track-name').textContent = track.title;
         document.querySelector('.track-artist').textContent = track.artist;
@@ -573,7 +615,7 @@ window.addEventListener('DOMContentLoaded', () => {
     /* Автоматическое переключение на следующий трек после окончания текущего */
     audioPlayer.addEventListener('ended', () => {
         if (isRepeat) {
-            PlayTrack(currentTrackIndex);
+            playTrack(currentTrackIndex);
         }
         else if (isShuffle) {
             let randomIndex;
@@ -651,13 +693,22 @@ window.addEventListener('DOMContentLoaded', () => {
     /* Кнопка перемешивания */
     shuffleBtn.addEventListener('click', () => {
         isShuffle = !isShuffle;
+        
         if (isShuffle) {
             isRepeat = false;
-            /* Генерация новой перемешанной версии плейлиста для отображения в очереди */
-            shuffledPlaylist = [...currentPlaylist].sort(() => Math.random() - 0.5);
+            const currentTrack = currentPlaylist[currentTrackIndex];
+            let otherTracks = currentPlaylist.filter((_, index) => index !== currentTrackIndex);
+            for (let i = otherTracks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [otherTracks[i], otherTracks[j]] = [otherTracks[j], otherTracks[i]];
+            }
+            currentPlaylist = [currentTrack, ...otherTracks];
+            currentTrackIndex = 0;
         }
         updateControlStyles();
-        if (queueOverlay.classList.contains('active')) renderQueue();
+        if (queueOverlay.classList.contains('active')) {
+            renderQueue();
+        }
     });
 
     /* Функция для обновления стилей кнопок "Повтор" и "Перемешивание" */
@@ -714,13 +765,8 @@ window.addEventListener('DOMContentLoaded', () => {
         let displayTracks = [];
 
         if (isRepeat) {
-            /* Только текущий трек, при повторе остальные не важны */
             displayTracks = [currentPlaylist[currentTrackIndex]];
-        } else if (isShuffle) {
-           /*  Используем перемешанный плейлист для отображения в очереди */
-            displayTracks = shuffledPlaylist;
         } else {
-            /* Обычный режим - отображаем треки в порядке основного плейлиста */
             displayTracks = currentPlaylist;
         }
 

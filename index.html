@@ -54,9 +54,9 @@
                 </div>
 
                 <div class="library-filters">
-                    <span class="filter-tag active">Треки</span>
-                    <span class="filter-tag">Альбомы</span>
-                    <span class="filter-tag">Плейлисты</span>
+                    <span class="filter-tag active" id="filter-all">Треки</span>
+                    <span class="filter-tag" id="filter-liked">Любимое</span>
+                    <span class="filter-tag" id="filter-playlists">Плейлисты</span>
                 </div>
 
                 <div id="tracks-list" class="tracks-grid">
@@ -213,6 +213,7 @@
     </div>
 
 <audio id="main-audio" style="display:none;"></audio>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.104.0/dist/umd/supabase.min.js"></script>
 <script src="script.js"></script>
