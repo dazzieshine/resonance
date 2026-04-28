@@ -57,6 +57,19 @@ window.addEventListener('DOMContentLoaded', () => {
     /* Элементы для фильтрации треков в медиатеке */
     const filterAll = document.getElementById('filter-all');
     const filterLiked = document.getElementById('filter-liked');
+    const filterPlaylists = document.getElementById('filter-playlists');
+
+    /* Элементы для отображения треков и плейлистов в медиатеке */
+    const tracksList = document.getElementById('tracks-list');
+    const playlistsViewContainer = document.getElementById('playlists-view-container');
+    const createPlaylistButton = document.getElementById('create-playlist-button');
+
+    /* Элементы для создания плейлиста */
+    const playlistFormContainer = document.getElementById('playlist-form-container');
+    const playlistNameInput = document.getElementById('playlist-name-input');
+    const savePlaylistButton = document.getElementById('save-playlist-button');
+    const cancelPlaylistButton = document.getElementById('cancel-playlist-button');
+    const closePlaylistModal = document.getElementById('close-playlist-modal');
 
     let isRegistered = false;
     let currentUser = localStorage.getItem('my_user_uuid') || null;
@@ -68,21 +81,251 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let isRepeat = false;
     let isShuffle = false;
-    let shuffledPlaylist = [];
-    let originalPlaylist = [];
 
-    filterAll?.addEventListener('click', () => {
-        filterAll.classList.add('active');
-        filterLiked.classList.remove('active');
-        currentPlaylist = [...allUserTracks];
-        renderTracks(currentPlaylist);
+    createPlaylistButton?.addEventListener('click', async () => {
+        if (!currentUser) {
+            toast("Войдите в аккаунт", "error");
+            return;
+        }
+
+        playlistFormContainer.style.display = 'flex';
+        playlistNameInput.focus();
+
+        renderPlaylistTracks();
+    });
+
+    const hidePlaylistModal = () => {
+        playlistFormContainer.style.display = 'none';
+        playlistNameInput.value = '';
+    };
+
+    [cancelPlaylistButton, closePlaylistModal].forEach(btn => {
+        btn?.addEventListener('click', hidePlaylistModal);
+    });
+
+    /* Сохранение нового плейлиста в БД*/
+    savePlaylistButton?.addEventListener('click', async () => {
+        const name = playlistNameInput.value.trim();
+        if (!name) {
+            toast("Введите название", "error");
+            return;
+        }
+        const checked = [...document.querySelectorAll('#playlist-track-list input:checked')]
+            .map(el => el.value);
+        try {
+            const { data, error } = await supabase
+                .from('playlists')
+                .insert([{
+                    name: name,
+                    user_id: currentUser
+                }])
+                .select()
+                .single();
+            if (error) throw error;
+            const playlistId = data.id;
+            if (checked.length) {
+                const rows = checked.map(trackId => ({
+                    playlist_id: playlistId,
+                    track_id: trackId
+                }));
+                await supabase
+                    .from('playlist_tracks')
+                    .insert(rows);
+            }
+
+            toast("Плейлист создан");
+            hidePlaylistModal();
+            loadPlaylists();
+
+        } catch(err) {
+            console.error(err);
+            toast("Ошибка создания", "error");
+        }
+    });
+
+    function renderPlaylistTracks() {
+        const container = document.getElementById('playlist-track-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (!allUserTracks.length) {
+            container.innerHTML = `<p style="color:#888; text-align:center; padding:20px;">Нет загруженных треков</p>`;
+            return;
+        }
+
+        allUserTracks.forEach(track => {
+            const item = document.createElement('label');
+            item.className = 'playlist-track-item';
+            
+            item.innerHTML = `
+                <input type="checkbox" value="${track.id}">
+                <span class="custom-checkbox">
+                    <i class="fas fa-check"></i>
+                </span>
+                <div class="playlist-track-info">
+                    <div class="playlist-track-name">${track.title}</div>
+                    <div class="playlist-track-artist">${track.artist}</div>
+                </div>
+            `;
+
+            container.appendChild(item);
         });
-    
+    }
+
+    /* Функция для переключения между секциями "Треки", "Любимое" и "Плейлисты" */
+    function switchLibrarySection(activeFilter, sectionToShow) {
+        [filterAll, filterLiked, filterPlaylists].forEach(filter => {
+            filter?.classList.remove('active');
+        });
+
+        activeFilter.classList.add('active');
+
+        if (sectionToShow === 'playlists') {
+            tracksList.style.display = 'none';
+            playlistsViewContainer.style.display = 'block';
+            openUploadModalButton.style.display = 'none';
+            createPlaylistButton.style.display = 'flex';
+            
+            if (currentUser) {
+                loadPlaylists();
+            } else {
+                const grid = document.getElementById('playlists-grid');
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-lock"></i>
+                            <h3>Требуется авторизация</h3>
+                            <p>Войдите в аккаунт, чтобы увидеть плейлисты</p>
+                        </div>
+                    `;
+                }
+            }
+        } else {
+            tracksList.style.display = 'grid';
+            playlistsViewContainer.style.display = 'none';
+            openUploadModalButton.style.display = 'flex';
+            createPlaylistButton.style.display = 'none';
+        }
+    }
+
+    /* Функция загрузки плейлистов */
+    async function loadPlaylists() {
+        const grid = document.getElementById('playlists-grid');
+        if (!grid) return;
+
+        if (!currentUser) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-lock"></i>
+                    <h3>Требуется авторизация</h3>
+                    <p>Войдите в аккаунт, чтобы увидеть плейлисты</p>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = '';
+        const { data, error } = await supabase
+            .from('playlists')
+            .select('*')
+            .eq('user_id', currentUser);
+
+        if (error) {
+            console.error(error);
+            toast("Ошибка загрузки плейлистов", "error");
+            return;
+        }
+
+        if (!data.length) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>Плейлистов пока нет</h3>
+                    <p>Создайте первый плейлист</p>
+                </div>
+            `;
+            return;
+        }
+
+        data.forEach(playlist => {
+            const card = document.createElement('div');
+            card.className = 'track-card';
+            card.innerHTML = `
+                <div class="card-image playlist-cover">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div class="track-title-text">${playlist.name}</div>
+            `;
+
+            card.addEventListener('click', () => {
+                playPlaylist(playlist.id);
+            });
+
+            grid.appendChild(card);
+        });
+    }
+
+    /* Функция воспроизведения плейлиста */
+    async function playPlaylist(playlistId) {
+        
+        const { data: playlistTracks, error: linkError } = await supabase
+            .from('playlist_tracks')
+            .select('track_id')
+            .eq('playlist_id', playlistId);
+        
+        if (linkError || !playlistTracks.length) {
+            toast("В плейлисте нет треков", "error");
+            return;
+        }
+        
+        const trackIds = playlistTracks.map(item => item.track_id);
+        
+        const { data: tracks, error: tracksError } = await supabase
+            .from('tracks')
+            .select('*')
+            .in('id', trackIds);
+        
+        if (tracksError) {
+            toast("Ошибка загрузки треков", "error");
+            return;
+        }
+        
+        const orderedTracks = trackIds.map(id => tracks.find(t => t.id === id)).filter(t => t);
+        
+        if (!orderedTracks.length) {
+            toast("Не удалось загрузить треки", "error");
+            return;
+        }
+        
+        currentPlaylist = orderedTracks;
+        currentTrackIndex = 0;
+        isShuffle = false;
+        isRepeat = false;
+        updateControlStyles();
+        
+        playTrack(0);
+        
+        if (queueOverlay.classList.contains('active')) {
+            renderQueue();
+        }
+    }
+
+    /* Кнопка "Треки" */
+    filterAll?.addEventListener('click', () => {
+        switchLibrarySection(filterAll, 'tracks');
+        loadUserTracks();
+    });
+
+    /* Кнопка "Любимое" */
     filterLiked?.addEventListener('click', () => {
-        filterLiked.classList.add('active');
-        filterAll.classList.remove('active');
-        currentPlaylist = allUserTracks.filter(track => track.is_liked);
-        renderTracks(currentPlaylist);
+        switchLibrarySection(filterLiked, 'tracks');
+        loadUserTracks();
+    });
+
+    /* Кнопка "Плейлисты" */
+    filterPlaylists?.addEventListener('click', () => {
+        switchLibrarySection(filterPlaylists, 'playlists');
     });
 
     /* Синхронизация иконки Play/Pause с состоянием плеера */
@@ -249,6 +492,22 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-button')?.addEventListener('click', () => {
         currentUser = null;
         isRegistered = false;
+
+        allUserTracks = [];
+        currentPlaylist = [];
+        currentTrackIndex = -1;
+
+        const tracksGrid = document.getElementById('tracks-list');
+        const playlistsGrid = document.getElementById('playlists-grid');
+        if (tracksGrid) tracksGrid.innerHTML = '';
+        if (playlistsGrid) playlistsGrid.innerHTML = '';
+        
+        audioPlayer.pause();
+        audioPlayer.src = '';
+        document.querySelector('.track-name').textContent = 'Название трека';
+        document.querySelector('.track-artist').textContent = 'Имя исполнителя';
+        updateLikeVisuals(false);
+        
         hideAllSections();
         homeView.style.display = 'block';
         toast("Вы вышли", "info");
@@ -276,22 +535,9 @@ window.addEventListener('DOMContentLoaded', () => {
     /* Логика открытия окна загрузки трека */
     openUploadModalButton?.addEventListener('click', () => {
         if (!isRegistered) {
-            Swal.fire({
-                title: 'Доступ ограничен',
-                text: 'Чтобы загружать свои треки, необходимо авторизоваться',
-                icon: 'warning',
-                iconColor: '#7b2cbf',
-                background: '#181818',
-                color: '#ffffff',
-                showConfirmButton: true,
-                confirmButtonText: 'ОК',
-                confirmButtonColor: '#7b2cbf',
-                padding: '2em',
-                background: '#121212',
-                backdrop: `rgba(0,0,0,0.6)`,
-            });
+            toast("Войдите в аккаунт", "error");
             return;
-        }               
+        }           
         uploadFormContainer.style.display = 'flex';
     });
 
@@ -460,7 +706,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     /* Функция для кнопки "Лайк" */
     const likeBtn = document.querySelector('.like-button');
-    const likeIcon = likeBtn.querySelector('i');
 
     likeBtn.addEventListener('click', async () => {
         /* Если трек не выбран или не знаем его индекс, ничего не делаем */
@@ -489,7 +734,18 @@ window.addEventListener('DOMContentLoaded', () => {
         /* Для отображения в медиатеке "Любимого" */
         if (filterLiked.classList.contains('active')) {
             const likedTracks = currentPlaylist.filter(t => t.is_liked);
-            renderTracks(likedTracks);
+
+            if (likedTracks.length === 0) {
+                tracksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-heart"></i>
+                        <h3>Любимых треков пока нет</h3>
+                        <p>Нажимайте на сердечко у треков, чтобы сохранять их здесь</p>
+                    </div>
+                `;
+            } else {
+                renderTracks(likedTracks);
+            }
         }
     });
 
@@ -533,8 +789,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
     /* Функция для отображения треков в медиатеке */
     async function loadUserTracks() {
-        const tracksList = document.getElementById('tracks-list');
-        const emptyState = document.getElementById('empty-library');
+
+        if (!currentUser) {
+            allUserTracks = [];
+            currentPlaylist = [];
+            tracksList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-lock"></i>
+                    <h3>Требуется авторизация</h3>
+                    <p>Войдите в аккаунт, чтобы увидеть свои треки</p>
+                </div>
+            `;
+            return;
+        }
 
         const { data: tracks, error } = await supabase
             .from('tracks')
@@ -546,8 +813,30 @@ window.addEventListener('DOMContentLoaded', () => {
         allUserTracks = tracks || [];
         currentPlaylist = [...allUserTracks];
         
+        if (allUserTracks.length === 0) {
+            tracksList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-compact-disc"></i>
+                    <h3>Здесь пока ничего нет</h3>
+                    <p>Загрузите свой первый трек, чтобы начать создание коллекции</p>
+                </div>
+            `;
+            return;
+        }
+        
         if (filterLiked?.classList.contains('active')) {
-            renderTracks(allUserTracks.filter(t => t.is_liked));
+            const likedTracks = allUserTracks.filter(t => t.is_liked);
+            if (likedTracks.length === 0) {
+                tracksList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-heart"></i>
+                        <h3>Любимых треков пока нет</h3>
+                        <p>Нажимайте на сердечко у треков, чтобы сохранять их здесь</p>
+                    </div>
+                `;
+            } else {
+                renderTracks(likedTracks);
+            }
         } else {
             renderTracks(allUserTracks);
         }
@@ -623,8 +912,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 randomIndex = Math.floor(Math.random() * currentPlaylist.length);
             } while (randomIndex === currentTrackIndex);
             currentTrackIndex = randomIndex;
-
-            currentTrackIndex = randomIndex;
             playTrack(currentTrackIndex);
         }
         else {
@@ -668,18 +955,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.prev-button').onclick = () => {
         currentTrackIndex = getPrevIndex();
         playTrack(currentTrackIndex);
-    };
-
-    /* Когда трек заканчивается, проверяем, включен ли режим повторения
-    Если да - просто воспроизводим тот же трек
-    Если нет - выбираем следующий трек в зависимости от того, включен ли режим перемешивания, и воспроизводим его */
-    audioPlayer.onended = () => {
-        if (isRepeat) {
-            playTrack(currentTrackIndex); /* Приоритет повторения */
-        } else {
-            currentTrackIndex = getNextIndex();
-            playTrack(currentTrackIndex);
-        }
     };
 
     /* Кнопка повторения трека */

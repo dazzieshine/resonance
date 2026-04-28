@@ -6,6 +6,7 @@
     <title>Resonance - Music Archieve</title>
     <script src="https://kit.fontawesome.com/af967cd298.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:,">
 </head>
 <body>
     <div class="container">
@@ -47,10 +48,18 @@
                         <h2>Ваша медиатека</h2>
                         <p class="subtitle">Персональное цифровое хранилище</p>
                     </div>
-                    <button class="add-track-button" id="open-upload-modal">
-                        <i class="fas fa-plus"></i>
-                        <span>Добавить трек</span>
-                    </button>
+
+                    <div class="library-actions">
+                        <button class="add-track-button" id="open-upload-modal">
+                            <i class="fas fa-plus"></i>
+                            <span>Добавить трек</span>
+                        </button>
+
+                        <button class="add-track-button" id="create-playlist-button" style="display: none;">
+                            <i class="fas fa-folder-plus"></i>
+                            <span>Создать плейлист</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="library-filters">
@@ -59,12 +68,11 @@
                     <span class="filter-tag" id="filter-playlists">Плейлисты</span>
                 </div>
 
-                <div id="tracks-list" class="tracks-grid">
-                    <div id="empty-library" class="empty-state">
-                        <i class="fas fa-compact-disc"></i>
-                        <h3>Здесь пока ничего нет</h3>
-                        <p>Загрузите свой первый трек, чтобы начать создание коллекции</p>
-                    </div>
+                <div id="tracks-list" class="tracks-grid"></div>
+
+                <div id="playlists-view-container" style="display: none;">
+                    <div id="playlists-grid" class="tracks-grid">
+                        </div>
                 </div>
 
                 <div id="upload-form-container" class="upload-overlay" style="display: none;">
@@ -92,6 +100,24 @@
                         <div class="form-actions">
                             <button class="auth-button" id="start-upload-button">Добавить</button>
                             <button class="secondary-button" id="cancel-upload-button">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="playlist-form-container" class="upload-overlay" style="display:none;">
+                    <div class="auth-box upload-box">
+                        <h3>Создать плейлист</h3>
+                        <div class="upload-form-content">
+                            <div class="input-group">
+                                <input type="text" id="playlist-name-input" placeholder="Название плейлиста">
+                            </div>
+                            <div id="playlist-track-list" class="playlist-track-list">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button id="save-playlist-button" class="auth-button">Создать</button>
+                            <button id="cancel-playlist-button" class="secondary-button">Отмена</button>
                         </div>
                     </div>
                 </div>
