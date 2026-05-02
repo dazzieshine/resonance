@@ -62,10 +62,27 @@
                     </div>
                 </div>
 
-                <div class="library-filters">
-                    <span class="filter-tag active" id="filter-all">Треки</span>
-                    <span class="filter-tag" id="filter-liked">Любимое</span>
-                    <span class="filter-tag" id="filter-playlists">Плейлисты</span>
+                <div class="library-filters" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 0 10px;">
+                    <div style="display: flex; gap: 12px;">
+                        <span class="filter-tag active" id="filter-all">Треки</span>
+                        <span class="filter-tag" id="filter-liked">Любимое</span>
+                        <span class="filter-tag" id="filter-playlists">Плейлисты</span>
+                    </div>
+
+                    <div class="sort-group" style="display: flex; gap: 8px;">
+                        <button class="sort-button" data-sort="newest" data-tooltip="Сначала новые">
+                            <i class="fas fa-arrow-down-wide-short"></i>
+                        </button>
+                        <button class="sort-button" data-sort="oldest" data-tooltip="Сначала старые">
+                            <i class="fas fa-arrow-up-wide-short"></i>
+                        </button>
+                        <button class="sort-button" data-sort="title" data-tooltip="По названию">
+                            <i class="fas fa-font"></i>
+                        </button>
+                        <button class="sort-button" data-sort="artist" data-tooltip="По исполнителю">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="tracks-list" class="tracks-grid"></div>
@@ -83,7 +100,7 @@
                             <div class="input-group">
                                 <input type="text" id="track-title" placeholder="Название песни">
                             </div>
-                                    
+                    
                             <div class="input-group">
                                 <input type="text" id="track-artist" placeholder="Исполнитель">
                             </div>
@@ -95,6 +112,19 @@
                                 <span id="file-name-display">Выберите аудиофайл (MP3, WAV)</span>
                                 <input type="file" id="track-file" accept="audio/mp3, audio/wav" style="display: none;">
                             </div>
+                        </div>
+
+                        <div class="file-upload-container">
+                            <label for="track-cover" class="custom-file-upload">
+                                <i class="fas fa-image"></i>
+                            </label>
+                            <span id="cover-name-display">Выберите обложку (необязательно)</span>
+                            <input type="file" id="track-cover" accept="image/jpeg, image/png, image/webp" style="display: none;">
+                        </div>
+
+                        <div id="cover-preview" class="cover-preview" style="display:none;">
+                            <img id="cover-preview-img" src="">
+                            <p>Предпросмотр обложки</p>
                         </div>
 
                         <div class="form-actions">
@@ -111,8 +141,7 @@
                             <div class="input-group">
                                 <input type="text" id="playlist-name-input" placeholder="Название плейлиста">
                             </div>
-                            <div id="playlist-track-list" class="playlist-track-list">
-                            </div>
+                            <div id="playlist-track-list" class="playlist-track-list"></div>
                         </div>
 
                         <div class="form-actions">
@@ -121,8 +150,127 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Модальное окно редактирования трека -->
+                <div id="edit-track-modal" class="upload-overlay" style="display:none;">
+                    <div class="auth-box upload-box">
+                        <h3>Редактировать трек</h3>
+                        <div class="upload-form-content">
+                            
+                            <!-- Текущая обложка с предпросмотром -->
+                            <div id="edit-cover-preview" class="cover-preview" style="display:none;">
+                                <img id="edit-cover-preview-img" src="">
+                                <p id="edit-cover-preview-text">Текущая обложка</p>
+                            </div>
+                            
+                            <div class="input-group">
+                                <input type="text" id="edit-track-title" placeholder="Название">
+                            </div>
+                            <div class="input-group">
+                                <input type="text" id="edit-track-artist" placeholder="Исполнитель">
+                            </div>
+                            
+                            <!-- Поле для новой обложки -->
+                            <div class="file-upload-container">
+                                <label for="edit-track-cover" class="custom-file-upload">
+                                    <i class="fas fa-image"></i>
+                                </label>
+                                <span id="edit-cover-name-display">Выбрать новую обложку</span>
+                                <input type="file" id="edit-track-cover" accept="image/jpeg, image/png, image/webp" style="display: none;">
+                            </div>
+
+                            <!-- Превью новой обложки -->
+                            <div id="edit-new-cover-preview" style="display:none; text-align:center; margin-top:10px;">
+                                <img id="edit-new-cover-preview-img" src="" style="width:120px; height:120px; border-radius:12px; object-fit:cover;">
+                                <p style="font-size:12px; color:#888; margin-top:5px;">Новая обложка</p>
+                            </div>
+
+                        </div>
+                        <div class="form-actions">
+                            <button id="save-track-edit" class="auth-button">Сохранить</button>
+                            <button id="cancel-track-edit" class="secondary-button">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модальное окно "Добавить в плейлист" -->
+                <div id="add-to-playlist-modal" class="upload-overlay" style="display:none;">
+                    <div class="auth-box upload-box" style="max-width: 350px;">
+                        <h3>Добавить в плейлист</h3>
+                        <div class="upload-form-content">
+                            <p id="add-to-playlist-track-name" style="color:#b3b3b3; margin-bottom:10px; font-size:13px;"></p>
+                            <div id="playlist-check-list" class="playlist-simple-list" style="width:100%; max-height:250px; overflow-y:auto;">
+                            </div>
+                        </div>
+                        <div class="form-actions" style="flex-direction: row; gap: 12px;">
+                            <button id="confirm-add-to-playlist" class="auth-button" style="flex:1;">Добавить</button>
+                            <button id="cancel-add-to-playlist" class="secondary-button" style="flex:1;">Отмена</button>
+                        </div>
+                    </div>
+                </div>
             </section>
-            
+
+            <!-- Модальное окно просмотра плейлиста -->
+            <div id="playlist-view-modal" class="upload-overlay" style="display:none;">
+                <div class="auth-box upload-box" style="max-width: 500px; position: relative;">
+                    <button id="close-playlist-view" class="modal-close-button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h3 id="playlist-view-title">Плейлист</h3>
+
+                    <div class="upload-form-content">
+                        <div id="playlist-tracks-list" class="playlist-track-list" style="max-height: 400px;">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button id="edit-playlist" class="auth-button" style="background: #7b2cbf;">
+                            <i class="fas fa-pen"></i> Редактировать
+                        </button>
+                        <button id="delete-playlist" class="secondary-button" style="background-color:#9b2c3d; border-color: #9b2c3d; color: #fff;">Удалить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно редактирования плейлиста -->
+            <div id="edit-playlist-modal" class="upload-overlay" style="display:none;">
+                <div class="auth-box upload-box" style="max-width: 450px;">
+                    <h3>Редактировать плейлист</h3>
+                    <div class="upload-form-content">
+                        
+                        <!-- Текущая обложка -->
+                        <div id="edit-playlist-cover-preview" class="cover-preview" style="display:none;">
+                            <img id="edit-playlist-cover-preview-img" src="">
+                            <p id="edit-playlist-cover-text">Текущая обложка</p>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="text" id="edit-playlist-name" placeholder="Название плейлиста">
+                        </div>
+                        
+                        <!-- Поле для новой обложки -->
+                        <div class="file-upload-container">
+                            <label for="edit-playlist-cover" class="custom-file-upload">
+                                <i class="fas fa-image"></i>
+                            </label>
+                            <span id="edit-playlist-cover-name-display">Выбрать новую обложку</span>
+                            <input type="file" id="edit-playlist-cover" accept="image/jpeg, image/png, image/webp" style="display: none;">
+                        </div>
+                        
+                        <!-- Превью новой обложки -->
+                        <div id="edit-playlist-new-cover-preview" class="cover-preview" style="display:none;">
+                            <img id="edit-playlist-new-cover-preview-img" src="">
+                            <p>Новая обложка</p>
+                        </div>
+                        
+                    </div>
+                    <div class="form-actions">
+                        <button id="save-playlist-edit" class="auth-button">Сохранить</button>
+                        <button id="cancel-playlist-edit" class="secondary-button">Отмена</button>
+                    </div>
+                </div>
+            </div>
+                        
             <!-- Секция входа-->
             <section id="login-view" class="content-section" style="display: none;">
                 <div class="auth-box">
@@ -178,19 +326,28 @@
 
         <!-- Плеер -->
         <footer class="player">
-            
-            <!-- Левая часть: текущий трек -->
             <div class="track-info">
-                <!-- Заглушка для обложки -->
                 <div class="track-cover"></div>
                 <div class="track-details">
                     <div class="track-name">Название трека</div>
                     <div class="track-artist">Имя исполнителя</div>
                 </div>
-                <!-- Кнопка "Добавить в любимое" -->
-                <button class="like-button">
-                    <i class="fa-regular fa-heart"></i>
-                </button>
+                <div class="track-actions">
+                    <button class="player-menu-trigger">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <button class="like-button">
+                        <i class="fa-regular fa-heart"></i>
+                    </button>
+                    <div class="player-context-menu">
+                        <button class="player-edit-track">
+                            <i class="fas fa-pen"></i> Редактировать
+                        </button>
+                        <button class="player-add-to-playlist">
+                            <i class="fas fa-folder-plus"></i> Добавить в плейлист
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Центральная часть: элементы управления -->
