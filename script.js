@@ -935,6 +935,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 avatarImg.src = '';
             }
             if (avatarIcon) avatarIcon.style.display = 'block';
+            
+            const profileUsername = document.getElementById('profile-username');
+            if (profileUsername) profileUsername.style.display = 'none';
+            
             return;
         }
         
@@ -949,7 +953,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const { data: userData, error } = await supabase
             .from('users_data')
-            .select('avatar_url, username, display_name')
+            .select('avatar_url, display_name')
             .eq('id', currentUser)
             .single();
         
@@ -959,6 +963,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const avatarIcon = document.getElementById('avatar-icon');
             if (avatarImg) avatarImg.style.display = 'none';
             if (avatarIcon) avatarIcon.style.display = 'block';
+            
+            if (profileUsername) profileUsername.style.display = 'none';
             return;
         }
         
@@ -966,7 +972,10 @@ window.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('my_user_name', displayName);
         
         if (profileDisplayName) profileDisplayName.textContent = displayName;
-        if (profileUsername) profileUsername.textContent = `@${userData.username}`;
+        
+        if (profileUsername) {
+            profileUsername.style.display = 'none';
+        }
         
         const { count: tracksCount } = await supabase.from('tracks').select('*', { count: 'exact', head: true }).eq('user_id', currentUser);
         const { count: playlistsCount } = await supabase.from('playlists').select('*', { count: 'exact', head: true }).eq('user_id', currentUser);
@@ -1099,7 +1108,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     <button class="delete-track-btn" data-track-id="${track.id}"><i class="fas fa-trash"></i> Удалить</button>
                 </div>
                 <div class="card-image">${track.cover_url ? `<img src="${track.cover_url}" alt="cover">` : '<i class="fa-solid fa-music"></i>'}</div>
-                <div class="card-info"><div class="track-title-text">${track.title}</div><div class="track-author">${track.artist || 'Неизвестен'}</div></div>
+                <div class="card-info">
+                    <div class="track-title-text">${escapeHtml(track.title)}</div>
+                    <div class="track-author">${escapeHtml(track.artist || track.artist_display || 'Неизвестен')}</div>
+                </div>
                 <div class="track-duration">${formatTime(track.duration || 0)}</div>
             `;
             
@@ -1178,8 +1190,17 @@ window.addEventListener('DOMContentLoaded', () => {
         audioPlayer.currentTime = 0;
         audioPlayer.src = '';
 
-        document.querySelector('.track-name').textContent = track.title;
-        document.querySelector('.track-artist').textContent = track.artist;
+        document.querySelector('.track-name').textContent = track.title || 'Без названия';
+        
+        let artistName = 'Неизвестен';
+        if (track.artist) {
+            artistName = track.artist;
+        } else if (track.artist_display) {
+            artistName = track.artist_display;
+        } else if (track.artists && track.artists.length > 0) {
+            artistName = track.artists.join(', ');
+        }
+        document.querySelector('.track-artist').textContent = artistName;
         
         const trackCoverElement = document.querySelector('.track-cover');
         if (track.cover_url) {
@@ -1207,7 +1228,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 .then(() => {
                     saveToRecent(track);
                 })
-
                 .catch(error => {
                     console.log('Play error:', error);
                     setTimeout(() => {
@@ -2353,81 +2373,147 @@ window.addEventListener('DOMContentLoaded', () => {
 
     loginForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const user = document.getElementById('login-username').value;
+        const email = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-password').value;
-        const { data, error } = await supabase.from('users_data').select('id, username').eq('username', user).eq('password', pass).single();
-        if (error || !data) toast("Неверный логин или пароль", "error");
-        else {
-            const recentGrid = document.getElementById('recent-tracks-grid');
-            if (recentGrid) recentGrid.innerHTML = '';
+        
+        if (!email || !pass) {
+            toast("Заполните все поля", "error");
+            return;
+        }
+        
+        try {
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: pass
+            });
+            
+            if (authError) throw authError;
+            
+            const { data: userData, error: userError } = await supabase
+                .from('users_data')
+                .select('id, username, display_name')
+                .eq('id', authData.user.id)
+                .single();
+            
+            if (userError) throw userError;
+            
             isRegistered = true;
-            currentUser = data.id;
-            localStorage.setItem('my_user_uuid', data.id);
-            localStorage.setItem('my_user_name', data.display_name || data.username);
+            currentUser = userData.id;
+            localStorage.setItem('my_user_uuid', userData.id);
+            localStorage.setItem('my_user_name', userData.display_name || userData.username);
             
             await loadUserTracks();
-            
             hideAllSections();
             profileView.style.display = 'block';
             await loadProfileStatsAndAvatar();
-            refreshAllData(); 
+            refreshAllData();
             
-            toast(`С возвращением, ${data.username}!`);
+            toast(`С возвращением, ${userData.display_name || userData.username}!`);
+            
+        } catch (error) {
+            console.error(error);
+            toast("Неверный email или пароль", "error");
         }
     });
 
     regForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const username = document.getElementById('reg-username').value.trim();
+        
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Отправка...";
+        
+        const email = document.getElementById('reg-email').value.trim();
         const password = document.getElementById('reg-password').value;
         
+        if (!email || !password) {
+            toast("Заполните все поля", "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
+        
         const passwordError = validatePassword(password);
-        if (passwordError) { 
-            toast(passwordError, "error"); 
-            return; 
+        if (passwordError) {
+            toast(passwordError, "error");
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
         }
         
         try {
-            const { data: existingUser, error: checkError } = await supabase
-                .from('users_data')
-                .select('id, username')
-                .eq('username', username)
-                .maybeSingle();
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        username: email.split('@')[0],
+                        display_name: email.split('@')[0]
+                    }
+                }
+            });
             
-            if (existingUser) {
-                toast("Этот логин уже занят. Выберите другой.", "error");
+            if (authError) {
+                if (authError.message.includes('rate limit')) {
+                    toast("Слишком много попыток. Попробуйте позже.", "error");
+                } else if (authError.message.includes('User already registered')) {
+                    toast("Этот email уже зарегистрирован", "error");
+                } else {
+                    toast(authError.message, "error");
+                }
                 return;
             }
             
-            const { data: newData, error: insertError } = await supabase
-                .from('users_data')
-                .insert([{ username, password }])
-                .select('id, username')
-                .single();
-            
-            if (insertError) throw insertError;
-            
-            if (newData) {
-                currentUser = newData.id;
-                isRegistered = true;
-                localStorage.setItem('my_user_uuid', newData.id);
-                localStorage.setItem('my_user_name', newData.username);
-                
-                toast("Аккаунт успешно создан!");
-                hideAllSections();
-                profileView.style.display = 'block';
-                await loadProfileStatsAndAvatar();
-                await loadUserTracks();
-                localStorage.setItem(`recent_tracks_${newData.id}`, JSON.stringify([]));
+            if (authData.user?.identities?.length === 0) {
+                toast("Этот email уже зарегистрирован. Попробуйте войти.", "info");
+                return;
             }
             
-        } catch (err) { 
-            console.error(err); 
-            toast("Ошибка регистрации. Попробуйте позже.", "error"); 
+            Swal.fire({
+                title: '✅ Почти готово!',
+                html: `
+                    <div style="text-align: center;">
+                        <i class="fas fa-envelope" style="font-size: 48px; color: #9D4EDD; margin-bottom: 16px;"></i>
+                        <p style="margin-bottom: 8px;">Письмо с подтверждением отправлено на</p>
+                        <p style="font-weight: bold; color: #9D4EDD; margin-bottom: 16px;">${escapeHtml(email)}</p>
+                        <p style="font-size: 14px; color: #888;">Перейдите по ссылке в письме, чтобы войти в аккаунт.</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 16px;">Если письмо не пришло, проверьте папку Спам</p>
+                    </div>
+                `,
+                icon: 'info',
+                iconColor: '#9D4EDD',
+                background: '#1E1E1E',
+                color: '#FFFFFF',
+                confirmButtonText: 'Понятно',
+                confirmButtonColor: '#7B2CBF',
+                customClass: {
+                    popup: 'custom-swal-popup',
+                    confirmButton: 'swal2-confirm'
+                },
+                buttonsStyling: false
+            });
+            
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-password').value = '';
+
+            setTimeout(() => {
+                hideAllSections();
+                loginView.style.display = 'block';
+            }, 2000);
+            
+        } catch (err) {
+            console.error(err);
+            toast("Ошибка регистрации: " + err.message, "error");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     });
 
-    document.getElementById('logout-button')?.addEventListener('click', () => {
+    document.getElementById('logout-button')?.addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        
         const userId = currentUser;
         
         const avatarImg = document.getElementById('avatar-img');
@@ -2500,10 +2586,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
     editProfileBtn?.addEventListener('click', async () => {
         if (!currentUser) { toast("Войдите в аккаунт", "error"); return; }
-        const { data, error } = await supabase.from('users_data').select('username, display_name, avatar_url').eq('id', currentUser).single();
+        
+        const { data, error } = await supabase
+            .from('users_data')
+            .select('display_name, avatar_url')
+            .eq('id', currentUser)
+            .single();
+        
         if (error) { toast("Ошибка загрузки данных", "error"); return; }
-        editProfileLogin.value = data.username;
-        editProfileDisplayName.value = data.display_name || data.username;
+        editProfileDisplayName.value = data.display_name || '';
         if (data.avatar_url) {
             avatarPreviewImg.src = data.avatar_url;
             avatarPreviewImg.style.display = 'block';
@@ -2562,7 +2653,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 .upload(fileName, file, { upsert: true });
             
             if (uploadErr) {
-                console.error('Ошибка загрузки:', uploadErr);
                 toast("Ошибка загрузки аватара: " + uploadErr.message, "error");
                 return;
             }
@@ -2578,23 +2668,32 @@ window.addEventListener('DOMContentLoaded', () => {
                 .eq('id', currentUser);
             
             if (updateAvatarErr) {
-                console.error('Ошибка сохранения URL:', updateAvatarErr);
                 toast("Ошибка сохранения аватара", "error");
                 return;
             }
         }
 
-        const updateObj = { display_name: newDisplayName };
-        if (newPassword) updateObj.password = newPassword;
-        
-        const { error: updateErr } = await supabase
+        const { error: updateDisplayErr } = await supabase
             .from('users_data')
-            .update(updateObj)
+            .update({ display_name: newDisplayName })
             .eq('id', currentUser);
         
-        if (updateErr) { 
-            toast("Ошибка сохранения: " + updateErr.message, "error"); 
+        if (updateDisplayErr) { 
+            toast("Ошибка сохранения имени: " + updateDisplayErr.message, "error"); 
             return; 
+        }
+        
+        if (newPassword) {
+            const { error: updatePasswordErr } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+            
+            if (updatePasswordErr) { 
+                toast("Ошибка смены пароля: " + updatePasswordErr.message, "error"); 
+                return; 
+            }
+            
+            toast("Пароль успешно изменен!", "success");
         }
         
         localStorage.setItem('my_user_name', newDisplayName);
@@ -3379,7 +3478,16 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentPlaylist[currentTrackIndex]) return;
         const track = currentPlaylist[currentTrackIndex];
         expandedTrackName.textContent = track.title || 'Название трека';
-        expandedTrackArtist.textContent = track.artist || 'Имя исполнителя';
+        
+        let artistName = 'Неизвестен';
+        if (track.artist) {
+            artistName = track.artist;
+        } else if (track.artist_display) {
+            artistName = track.artist_display;
+        } else if (track.artists && track.artists.length > 0) {
+            artistName = track.artists.join(', ');
+        }
+        expandedTrackArtist.textContent = artistName;
         
         if (track.cover_url) {
             expandedCover.src = track.cover_url;

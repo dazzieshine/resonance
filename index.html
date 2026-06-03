@@ -299,11 +299,6 @@
                         </div>
                         <button id="edit-profile-remove-avatar" class="small-secondary-btn">Удалить аватар</button>
                         <div class="input-group"style="display: flex; flex-direction: column; gap: 6px;">
-                            <label style="font-size: 12px; color: #888;">Логин</label>
-                            <input type="text" id="edit-profile-login" readonly disabled
-                                style="background: #2a2a2a; color: #aaa;" autocomplete="off">
-                        </div>
-                        <div class="input-group"style="display: flex; flex-direction: column; gap: 6px;">
                             <label style="font-size: 12px; color: #888;">Отображаемое имя</label>
                             <input type="text" id="edit-profile-display-name" placeholder="Как вас называть?"
                                 autocomplete="off">
@@ -330,7 +325,7 @@
                 <div class="auth-box">
                     <h2>Войти в Resonance</h2>
                     <form id="login-form">
-                        <input type="text" id="login-username" placeholder="Логин" required autocomplete="off">
+                        <input type="text" id="login-email" placeholder="Email" required>
                         <input type="password" id="login-password" placeholder="Пароль" required autocomplete="off">
                         <button type="submit" class="auth-button">Войти</button>
                     </form>
@@ -347,9 +342,9 @@
                 <div class="auth-box">
                     <h2>Регистрация в Resonance</h2>
                     <form id="reg-form">
-                        <input type="text" id="reg-username" placeholder="Логин" required>
+                        <input type="email" id="reg-email" placeholder="Email" required>
                         <input type="password" id="reg-password" placeholder="Пароль" required>
-                        <button type="submit" id="reg-button" class="auth-button">Создать аккаунт</button>
+                        <button type="submit" class="auth-button">Создать аккаунт</button>
                     </form>
                 </div>
             </section>
@@ -366,7 +361,6 @@
                         </div>
                         <div class="profile-names">
                             <h2 id="profile-display-name">Пользователь</h2>
-                            <p id="profile-username" class="profile-username">@username</p>
                         </div>
                     </div>
                     <div class="stats-container">
