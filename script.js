@@ -104,6 +104,10 @@ window.addEventListener('DOMContentLoaded', () => {
     let activeHandle = null;
     let isQueueOpen = false;
     let ignoreModalClose = false;
+    let ignoreModalCloseForPlaylist = false;
+    let ignoreModalCloseForEditPlaylist = false;
+    let ignoreModalCloseForEditTrack = false;
+    let ignoreModalCloseForProfile = false;
     repeatBtn.classList.toggle('active', isRepeat);
     shuffleBtn.classList.toggle('active', isShuffle);
 
@@ -223,7 +227,7 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const { data, timestamp } = JSON.parse(cached);
         // Кеш живёт 5 минут
-        if (Date.now() - timestamp > 30 * 60 * 1000) return null;
+        if (Date.now() - timestamp > 15 * 60 * 1000) return null;
         
         return data;
     }
@@ -243,9 +247,34 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!cached) return null;
         
         const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp > 5 * 60 * 1000) return null;
+        if (Date.now() - timestamp > 15 * 60 * 1000) return null;
         
         return data;
+    }
+
+    // Кеширование обложек
+    function cacheImageUrl(url, key) {
+        if (!url) return null;
+        const cacheKey = `img_cache_${key}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached === url) return url;
+        localStorage.setItem(cacheKey, url);
+        return url;
+    }
+
+    function getCachedImageUrl(key) {
+        return localStorage.getItem(`img_cache_${key}`);
+    }
+
+    function clearImageCache(key) {
+        if (key) {
+            localStorage.removeItem(`img_cache_${key}`);
+        } else {
+            // Очистить весь кеш изображений
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith('img_cache_')) localStorage.removeItem(k);
+            });
+        }
     }
 
     createPlaylistButton?.addEventListener('click', () => {
@@ -294,10 +323,19 @@ window.addEventListener('DOMContentLoaded', () => {
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0] || null;
             updateDisplay(file);
-
+            
             ignoreModalClose = true;
+            if (squareId === 'playlist-cover-square') ignoreModalCloseForPlaylist = true;
+            if (squareId === 'edit-playlist-cover-square') ignoreModalCloseForEditPlaylist = true;
+            if (squareId === 'edit-cover-square') ignoreModalCloseForEditTrack = true;
+            if (squareId === 'avatar-square') ignoreModalCloseForProfile = true;
+            
             setTimeout(() => {
                 ignoreModalClose = false;
+                ignoreModalCloseForPlaylist = false;
+                ignoreModalCloseForEditPlaylist = false;
+                ignoreModalCloseForEditTrack = false;
+                ignoreModalCloseForProfile = false;
             }, 500);
         });
 
@@ -367,10 +405,12 @@ window.addEventListener('DOMContentLoaded', () => {
             updateDisplay(file);
             if (onFileSelect) onFileSelect(file);
         });
+
         zone.addEventListener('dragover', (e) => {
             e.preventDefault();
             zone.classList.add('drag-over');
         });
+
         zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
         zone.addEventListener('drop', (e) => {
             e.preventDefault();
@@ -962,7 +1002,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (avatarImg && avatarIcon) {
             if (userData.avatar_url) {
-                avatarImg.src = `${userData.avatar_url}?t=${Date.now()}`;
+                const cachedAvatarUrl = cacheImageUrl(userData.avatar_url, `avatar_${currentUser}`);
+                const isCached = getCachedImageUrl(`avatar_${currentUser}`) === userData.avatar_url;
+                avatarImg.src = isCached ? cachedAvatarUrl : `${cachedAvatarUrl}?t=${Date.now()}`;
                 avatarImg.style.display = 'block';
                 avatarIcon.style.display = 'none';
             } else {
@@ -1072,6 +1114,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuTrigger = card.querySelector('.track-menu-trigger');
             const contextMenu = card.querySelector('.track-context-menu');
             
+            let scrollHandler = null;
+            
             menuTrigger.addEventListener('click', (e) => {
                 e.stopPropagation();
                 
@@ -1080,6 +1124,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 contextMenu.classList.toggle('active');
+                
+                if (contextMenu.classList.contains('active')) {
+                    scrollHandler = () => {
+                        contextMenu.classList.remove('active');
+                        window.removeEventListener('scroll', scrollHandler);
+                    };
+                    window.addEventListener('scroll', scrollHandler);
+                } else {
+                    if (scrollHandler) {
+                        window.removeEventListener('scroll', scrollHandler);
+                        scrollHandler = null;
+                    }
+                }
             });
             
             tracksList.appendChild(card);
@@ -1270,7 +1327,10 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const { data } = await supabase.from('playlists').select('id, name, cover_url, user_id, created_at').eq('user_id', currentUser);
+        const { data } = await supabase
+            .from('playlists')
+            .select('id, name, cover_url, user_id, created_at')
+            .eq('user_id', currentUser);
         
         if (!data || !data.length) { 
             originalPlaylists = []; 
@@ -1279,16 +1339,54 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         
         for (const p of data) {
-            const { count } = await supabase.from('playlist_tracks').select('*', { count: 'exact', head: true }).eq('playlist_id', p.id);
+            const { count } = await supabase
+                .from('playlist_tracks')
+                .select('*', { count: 'exact', head: true })
+                .eq('playlist_id', p.id);
             p.track_count = count || 0;
             const duration = await getPlaylistDuration(p.id);
             p.duration = duration;
         }
         
         originalPlaylists = data;
-        cachePlaylists(data);
 
-        data.forEach(playlist => {
+        originalPlaylists.forEach(playlist => {
+            if (playlist.cover_url) {
+                playlist.cover_url = cacheImageUrl(playlist.cover_url, `playlist_${playlist.id}`);
+            }
+        });
+        
+        cachePlaylists(originalPlaylists);
+        renderPlaylists(originalPlaylists);
+    }
+
+    function renderPlaylists(playlists) {
+        const grid = document.getElementById('playlists-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        
+        if (!playlists.length) {
+            if (searchQuery.trim()) {
+                grid.innerHTML = `
+                    <div class="not-found-placeholder">
+                        <i class="fas fa-search"></i>
+                        <h3>Плейлисты не найдены</h3>
+                        <p>По запросу "${searchQuery}" ничего не найдено</p>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <h3>Плейлистов пока нет</h3>
+                        <p>Создайте первый плейлист</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+        
+        playlists.forEach(playlist => {
             const card = document.createElement('div');
             card.className = 'track-card';
             card.innerHTML = `
@@ -1299,10 +1397,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     <button class="delete-playlist-btn" data-id="${playlist.id}"><i class="fas fa-trash"></i> Удалить</button>
                 </div>
                 <div class="card-image">
-                    ${playlist.cover_url ? `<img src="${playlist.cover_url}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">` : '<i class="fas fa-folder"></i>'}
+                    ${playlist.cover_url ? `<img src="${playlist.cover_url}" loading="lazy" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">` : '<i class="fas fa-folder"></i>'}
                 </div>
                 <div class="card-info">
-                    <div class="track-title-text">${playlist.name}</div>
+                    <div class="track-title-text">${escapeHtml(playlist.name)}</div>
                     <div class="track-author">Треков: ${playlist.track_count || 0}</div>
                     <div class="track-duration">${formatPlaylistDuration(playlist.duration || 0)}</div>
                 </div>
@@ -1317,6 +1415,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuTrigger = card.querySelector('.track-menu-trigger');
             const contextMenu = card.querySelector('.track-context-menu');
             
+            let scrollHandler = null;
+            
             menuTrigger.addEventListener('click', (e) => {
                 e.stopPropagation();
                 
@@ -1325,6 +1425,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 contextMenu.classList.toggle('active');
+                
+                if (contextMenu.classList.contains('active')) {
+                    scrollHandler = () => {
+                        contextMenu.classList.remove('active');
+                        window.removeEventListener('scroll', scrollHandler);
+                    };
+                    window.addEventListener('scroll', scrollHandler);
+                } else {
+                    if (scrollHandler) {
+                        window.removeEventListener('scroll', scrollHandler);
+                        scrollHandler = null;
+                    }
+                }
             });
             
             card.querySelector('.view-playlist-btn').addEventListener('click', (e) => {
@@ -1372,116 +1485,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderPlaylists(playlists) {
-        const grid = document.getElementById('playlists-grid');
-        if (!grid) return;
-        grid.innerHTML = '';
-        
-        if (!playlists.length) {
-            if (searchQuery.trim()) {
-                grid.innerHTML = `
-                    <div class="not-found-placeholder">
-                        <i class="fas fa-search"></i>
-                        <h3>Плейлисты не найдены</h3>
-                        <p>По запросу "${searchQuery}" ничего не найдено</p>
-                    </div>
-                `;
-            } else {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-folder-open"></i>
-                        <h3>Плейлистов пока нет</h3>
-                        <p>Создайте первый плейлист</p>
-                    </div>
-                `;
-            }
-            return;
-        }
-        
-        playlists.forEach(playlist => {
-            const card = document.createElement('div');
-            card.className = 'track-card';
-            card.innerHTML = `
-                <button class="track-menu-trigger playlist-menu-trigger"><i class="fas fa-ellipsis-v"></i></button>
-                <div class="track-context-menu playlist-context-menu">
-                    <button class="view-playlist-btn" data-id="${playlist.id}" data-name="${playlist.name}"><i class="fas fa-list"></i> Просмотр</button>
-                    <button class="edit-playlist-btn" data-id="${playlist.id}"><i class="fas fa-pen"></i> Редактировать</button>
-                    <button class="delete-playlist-btn" data-id="${playlist.id}"><i class="fas fa-trash"></i> Удалить</button>
-                </div>
-                <div class="card-image">
-                    ${playlist.cover_url ? `<img src="${playlist.cover_url}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">` : '<i class="fas fa-folder"></i>'}
-                </div>
-                <div class="card-info">
-                    <div class="track-title-text">${playlist.name}</div>
-                    <div class="track-author">Треков: ${playlist.track_count || 0}</div>
-                    <div class="track-duration">${formatPlaylistDuration(playlist.duration || 0)}</div>
-                </div>
-            `;
-            
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('.track-menu-trigger')) return;
-                if (e.target.closest('.playlist-context-menu button')) return;
-                playPlaylist(playlist.id);
-            });
-            
-            const menuTrigger = card.querySelector('.track-menu-trigger');
-            const contextMenu = card.querySelector('.track-context-menu');
-            
-            menuTrigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                
-                document.querySelectorAll('.track-context-menu.active, .playlist-context-menu.active').forEach(menu => {
-                    menu.classList.remove('active');
-                });
-                
-                contextMenu.classList.toggle('active');
-            });
-            
-            card.querySelector('.view-playlist-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                contextMenu.classList.remove('active');
-                openPlaylistView(playlist.id, playlist.name);
-            });
-            
-            card.querySelector('.edit-playlist-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                contextMenu.classList.remove('active');
-                showEditPlaylistModal(playlist.id);
-            });
-            
-            card.querySelector('.delete-playlist-btn').addEventListener('click', async (e) => {
-                e.stopPropagation();
-                contextMenu.classList.remove('active');
-                const confirm = await Swal.fire({
-                    title: 'Удалить плейлист?',
-                    text: 'Треки при этом не удалятся',
-                    icon: 'warning',
-                    iconColor: '#CF6679',
-                    showCancelButton: true,
-                    confirmButtonText: 'Удалить',
-                    cancelButtonText: 'Отмена',
-                    background: '#1E1E1E',
-                    color: '#FFFFFF',
-                    customClass: {
-                        popup: 'custom-swal-popup',
-                        confirmButton: 'swal2-confirm',
-                        cancelButton: 'swal2-cancel'
-                    },
-                    buttonsStyling: false
-                });
-                if (confirm.isConfirmed) {
-                    await supabase.from('playlist_tracks').delete().eq('playlist_id', playlist.id);
-                    await supabase.from('playlists').delete().eq('id', playlist.id);
-                    toast("Плейлист удалён");
-                    originalPlaylists = originalPlaylists.filter(p => p.id !== playlist.id);
-                    renderPlaylists(originalPlaylists);
-                }
-            });
-            
-            grid.appendChild(card);
-        });
-    }
-
     async function playPlaylist(playlistId) {
         const { data: playlistTracks } = await supabase.from('playlist_tracks').select('track_id').eq('playlist_id', playlistId);
         if (!playlistTracks || !playlistTracks.length) { toast("В плейлисте нет треков", "error"); return; }
@@ -1497,6 +1500,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     let currentPlaylistId = null;
+
     async function openPlaylistView(playlistId, playlistName) {
         currentPlaylistId = playlistId;
         document.getElementById('playlist-view-title').textContent = playlistName;
@@ -1518,6 +1522,14 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const orderedTracks = trackIds.map(id => tracks.find(t => t.id === id)).filter(t => t);
+        for (const track of orderedTracks) {
+            if (!track.artists || track.artists.length === 0) {
+                track.artists = await loadTrackArtists(track.id);
+                track.artist = track.artists?.join(', ') || track.artist_display || 'Неизвестен';
+            } else {
+                track.artist = track.artists.join(', ');
+            }
+        }
         container.innerHTML = '';
         orderedTracks.forEach((track, index) => {
             const item = document.createElement('div');
@@ -1528,7 +1540,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     <div style="width:40px; height:40px; background:#282828; border-radius:4px; display:flex; align-items:center; justify-content:center;">
                         ${track.cover_url ? `<img src="${track.cover_url}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">` : '<i class="fas fa-music" style="color:#7b2cbf;"></i>'}
                     </div>
-                    <div style="flex:1;"><div style="font-weight:500;">${track.title}</div><div style="font-size:11px; color:#888;">${track.artist}</div></div>
+                    <div style="flex:1;">
+                        <div style="font-weight:500;">${track.title}</div>
+                        <div style="font-size:11px; color:#888;">${track.artist || 'Неизвестен'}</div>
+                    </div>
                     <button class="remove-from-playlist-btn" data-playlist-id="${playlistId}" data-track-id="${track.id}" style="background:none; border:none; color:#b3b3b3; cursor:pointer; padding:8px;"><i class="fas fa-trash"></i></button>
                 </div>
             `;
@@ -1584,6 +1599,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('save-playlist-edit')?.addEventListener('click', async () => {
         const newName = document.getElementById('edit-playlist-name').value.trim();
         if (!newName) { toast("Введите название", "error"); return; }
+        
         let newCoverUrl = currentEditPlaylistCoverUrl;
         if (window.newEditPlaylistCover) {
             const file = window.newEditPlaylistCover;
@@ -1593,10 +1609,13 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!uploadErr) {
                 const { data: urlData } = supabase.storage.from('covers').getPublicUrl(fileName);
                 newCoverUrl = urlData.publicUrl;
+                // Очищаем кеш обложки этого плейлиста
+                clearImageCache(`playlist_${currentEditPlaylistId}`);
             } else {
                 toast("Ошибка загрузки обложки", "error");
             }
         }
+        
         const { error } = await supabase.from('playlists').update({ name: newName, cover_url: newCoverUrl }).eq('id', currentEditPlaylistId);
         if (error) toast("Ошибка сохранения", "error");
         else {
@@ -2551,6 +2570,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
             finalAvatarUrl = urlData.publicUrl;
             
+            clearImageCache(`avatar_${currentUser}`);
+            
             const { error: updateAvatarErr } = await supabase
                 .from('users_data')
                 .update({ avatar_url: finalAvatarUrl })
@@ -2845,10 +2866,23 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    playlistFormContainer?.addEventListener('mouseup', (e) => {
+   playlistFormContainer?.addEventListener('mouseup', (e) => {
+        if (ignoreModalCloseForPlaylist || ignoreModalClose) {
+            ignoreModalCloseForPlaylist = false;
+            ignoreModalClose = false;
+            isDraggingFromInput = false;
+            return;
+        }
         if (!isDraggingFromInput && e.target === playlistFormContainer) {
             closeModalWithDelay(playlistFormContainer, () => {
                 playlistNameInput.value = '';
+                window.newPlaylistCover = null;
+                const coverInput = document.getElementById('playlist-cover-input');
+                if (coverInput) coverInput.value = '';
+                const previewImg = document.getElementById('playlist-cover-preview');
+                const placeholder = document.getElementById('playlist-cover-placeholder');
+                if (previewImg) previewImg.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'flex';
                 window.newPlaylistCover = null;
             });
         }
@@ -2922,6 +2956,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     editTrackModal?.addEventListener('mouseup', (e) => {
+        if (ignoreModalCloseForEditTrack || ignoreModalClose) {
+            ignoreModalCloseForEditTrack = false;
+            ignoreModalClose = false;
+            isDraggingFromInput = false;
+            return;
+        }
         if (!isDraggingFromInput && e.target === editTrackModal) {
             closeModalWithDelay(editTrackModal);
         }
@@ -2958,6 +2998,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     editProfileModal?.addEventListener('mouseup', (e) => {
+        if (ignoreModalCloseForProfile || ignoreModalClose) {
+            ignoreModalCloseForProfile = false;
+            ignoreModalClose = false;
+            isDraggingFromInput = false;
+            return;
+        }
         if (!isDraggingFromInput && e.target === editProfileModal) {
             closeModalWithDelay(editProfileModal);
         }
@@ -2975,6 +3021,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     editPlaylistModal?.addEventListener('mouseup', (e) => {
+        if (ignoreModalCloseForEditPlaylist || ignoreModalClose) {
+            ignoreModalCloseForEditPlaylist = false;
+            ignoreModalClose = false;
+            isDraggingFromInput = false;
+            return;
+        }
         if (!isDraggingFromInput && e.target === editPlaylistModal) {
             closeModalWithDelay(editPlaylistModal, () => {
                 const coverInput = document.getElementById('edit-playlist-cover-input');
